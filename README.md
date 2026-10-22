@@ -18,6 +18,12 @@
 
 ![프로그램 화면 — 가명 자료](downloads/app-screenshot.png)
 
+### 복사·수정할 수 있는 제안서
+
+**[제안서 Word(DOCX) 다운로드](https://github.com/himmelzu/ai/raw/refs/heads/main/downloads/contest-proposal.docx)** · **[복사용 텍스트(TXT) 다운로드](https://github.com/himmelzu/ai/raw/refs/heads/main/downloads/contest-proposal.txt)**
+
+DOCX는 이미지 대신 일반 문단과 표로 작성했습니다. 개인 참가정보·동의·서명은 직접 작성해야 합니다. `scripts/create_proposal_docs.py`로 다시 만들 수 있으며, 문서 생성에만 `python-docx==1.2.0`이 필요합니다.
+
 배포 ZIP에는 실행파일, 사용설명서, 예시, 제안서 초안, 소스와 라이선스가 포함되어 있습니다. [SHA256 체크섬](downloads/SHA256SUMS.txt)으로 파일을 확인할 수 있습니다.
 
 ## 개발 실행
