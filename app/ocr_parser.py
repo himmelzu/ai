@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import unicodedata
 from typing import NamedTuple
 
 import fitz
@@ -29,6 +30,12 @@ class Word(NamedTuple):
     width: float
     height: float
     confidence: float
+
+
+class TableLayout(NamedTuple):
+    xs: list[float]
+    first_data_row: int
+    recovered: bool
 
 
 _COLUMNS = (
@@ -54,7 +61,9 @@ def _grid(pix: fitz.Pixmap) -> tuple[list[float], list[float]]:
     gray = fitz.Pixmap(fitz.csGRAY, pix)
     raw, width, height = gray.samples, gray.width, gray.height
     best: tuple[list[float], list[float]] = ([], [])
-    for threshold in (190, 225, 245):
+    # JPEG compression and browser downscaling can leave otherwise continuous
+    # pale grid rules just above 245; white page backgrounds remain 255.
+    for threshold in (190, 225, 245, 250, 253):
         dark = raw.translate(bytes(1 if i < threshold else 0 for i in range(256)))
         horizontal = [
             y for y in range(height)
@@ -158,11 +167,11 @@ def _recognize(pix: fitz.Pixmap, xs: list[float], ys: list[float]) -> list[Word]
     return _run_ocr(prepared, scale, psm=11)
 
 
-def _refine_actual_times(pix: fitz.Pixmap, words: list[Word], xs: list[float], ys: list[float]) -> list[Word]:
+def _refine_actual_times(pix: fitz.Pixmap, words: list[Word], xs: list[float], ys: list[float], first_data_row: int = 1) -> list[Word]:
     """Retry only an unreadable actual-time cell using a numeric OCR alphabet."""
     raw, stride, channels = pix.samples, pix.stride, pix.n
     result = list(words)
-    for top, bottom in zip(ys[1:-1], ys[2:]):
+    for top, bottom in zip(ys[first_data_row:-1], ys[first_data_row + 1:]):
         cell_words = [w for w in result if xs[5] < w.left + w.width / 2 < xs[6] and top < w.top + w.height / 2 < bottom]
         original = _cell_text(cell_words)
         if not original or len(_times(original)) == 2:
@@ -189,16 +198,16 @@ def _refine_actual_times(pix: fitz.Pixmap, words: list[Word], xs: list[float], y
     return result
 
 
-def _column_candidates(pix: fitz.Pixmap, xs: list[float], ys: list[float], col: int, scale: float) -> dict[int, list[Word]]:
+def _column_candidates(pix: fitz.Pixmap, xs: list[float], ys: list[float], col: int, scale: float, first_data_row: int = 1) -> dict[int, list[Word]]:
     """A uniform single text column is more legible than a mixed-height table."""
     x1, x2 = int(xs[col]) + 3, int(xs[col + 1]) - 2
-    y1, y2 = int(ys[1]) + 2, int(ys[-1]) - 2
+    y1, y2 = int(ys[first_data_row]) + 2, int(ys[-1]) - 2
     if x2 <= x1 or y2 <= y1:
         return {}
     raw, stride, channels = pix.samples, pix.stride, pix.n
     pixels = b"".join(raw[y * stride + x1 * channels:y * stride + x2 * channels] for y in range(y1, y2))
     crop = fitz.Pixmap(pix.colorspace, x2 - x1, y2 - y1, pixels, False)
-    for line in ys[2:-1]:
+    for line in ys[first_data_row + 1:-1]:
         y = int(line) - y1
         crop.set_rect(fitz.IRect(0, max(0, y - 1), crop.width, min(crop.height, y + 2)), (255,) * crop.n)
     recognized = _run_ocr(crop, scale, language="kor+eng")
@@ -206,12 +215,12 @@ def _column_candidates(pix: fitz.Pixmap, xs: list[float], ys: list[float], col: 
     for w in recognized:
         moved = Word(w.text, w.left + x1, w.top + y1, w.width, w.height, w.confidence)
         row = bisect.bisect_right(ys, moved.top + moved.height / 2) - 1
-        if 1 <= row < len(ys) - 1:
+        if first_data_row <= row < len(ys) - 1:
             by_row[row].append(moved)
     return dict(by_row)
 
 
-def _refine_identity_columns(pix: fitz.Pixmap, words: list[Word], xs: list[float], ys: list[float]) -> tuple[list[Word], dict[int, list[str]]]:
+def _refine_identity_columns(pix: fitz.Pixmap, words: list[Word], xs: list[float], ys: list[float], first_data_row: int = 1) -> tuple[list[Word], dict[int, list[str]]]:
     """Cross-check financial grouping names rather than trusting one OCR pass.
 
     OCR confidence is not proof of correctness. Keep disagreements as explicit
@@ -220,14 +229,14 @@ def _refine_identity_columns(pix: fitz.Pixmap, words: list[Word], xs: list[float
     result = list(words)
     notes: dict[int, list[str]] = defaultdict(list)
     original: dict[tuple[int, int], list[Word]] = {}
-    for row in range(1, len(ys) - 1):
+    for row in range(first_data_row, len(ys) - 1):
         for col in (2, 3, 6, 10, 11):
             original[row, col] = [w for w in words if xs[col] < w.left + w.width / 2 < xs[col + 1] and ys[row] < w.top + w.height / 2 < ys[row + 1]]
-    name_small = _column_candidates(pix, xs, ys, 3, 3)
-    name_large = _column_candidates(pix, xs, ys, 3, 5)
+    name_small = _column_candidates(pix, xs, ys, 3, 3, first_data_row)
+    name_large = _column_candidates(pix, xs, ys, 3, 5, first_data_row)
     selected: dict[int, str] = {}
     alternatives: dict[int, list[str]] = {}
-    for row in range(1, len(ys) - 1):
+    for row in range(first_data_row, len(ys) - 1):
         candidates = [re.sub(r"\s+", "", _cell_text(ws)) for ws in (original[row, 3], name_small.get(row, []), name_large.get(row, []))]
         candidates = [value for value in candidates if value and re.fullmatch(r"[가-힣A-Za-z·.\-]+", value)]
         if candidates:
@@ -258,7 +267,7 @@ def _refine_identity_columns(pix: fitz.Pixmap, words: list[Word], xs: list[float
         confidence = 60 if len(candidates) > 1 else min([w.confidence for w in name_small.get(row, []) + name_large.get(row, [])] or [60])
         result.append(Word(name, xs[3] + 3, ys[row] + 3, xs[4] - xs[3] - 6, ys[row + 1] - ys[row] - 6, confidence))
     for col, label in ((2, "직급"), (10, "공용차량"), (11, "결재상태")):
-        focused = _column_candidates(pix, xs, ys, col, 5)
+        focused = _column_candidates(pix, xs, ys, col, 5, first_data_row)
         for row, candidate_words in focused.items():
             candidate = re.sub(r"\s+", "", _cell_text(candidate_words))
             previous = re.sub(r"\s+", "", _cell_text(original[row, col]))
@@ -300,43 +309,219 @@ def _cell_text(words: list[Word]) -> str:
     return "\n".join(rendered)
 
 
-def _logical_grid(words: list[Word], xs: list[float], ys: list[float]) -> list[float]:
-    """Merge actual-time subcolumns and ignore checkbox/trailing UI columns.
+_HEADER_LABELS = {
+    "department": ("부서", "소속", "부서명"),
+    "rank": ("직급", "직위"),
+    "name": ("출장자", "성명", "이름"),
+    "requested": ("신청출장기간", "출장기간", "신청기간"),
+    "destination": ("출장지", "목적지"),
+    "purpose": ("출장목적", "목적"),
+    "vehicle": ("공용차량", "공용차량사용여부", "차량"),
+    "approval": ("결재상태", "결재"),
+}
+_VEHICLE_LABELS = {"사용", "미사용", "이용", "미이용", "사용안함", "y", "n", "o", "x"}
+_APPROVAL_LABELS = {"결재완료", "미신청", "취소", "반려", "결재중", "미결재", "신청", "승인", "처리완료"}
 
-    The list's logical column order is fixed, but its physical grid may include
-    a selection column, two actual-time cells, and a clipped final UI column.
-    Header anchors confirm the layout before any employee row is interpreted.
+
+def _compact(text: str) -> str:
+    return re.sub(r"[^가-힣A-Za-z0-9]", "", unicodedata.normalize("NFKC", text)).lower()
+
+
+def _one_edit(left: str, right: str) -> bool:
+    """Allow one damaged glyph in a longer label, never fuzzy-match 2-letter labels."""
+    if abs(len(left) - len(right)) > 1:
+        return False
+    if len(left) > len(right):
+        left, right = right, left
+    if len(left) == len(right):
+        return sum(a != b for a, b in zip(left, right)) <= 1
+    for index in range(len(right)):
+        if right[:index] + right[index + 1:] == left:
+            return True
+    return False
+
+
+def _header_score(text: str, role: str) -> float:
+    text = _compact(text)
+    if role == "purpose" and "목적지" in text and "출장목적" not in text:
+        return 0.0
+    for label in _HEADER_LABELS[role]:
+        if label in text:
+            return 1.0
+    for label in _HEADER_LABELS[role]:
+        if len(label) < 3:
+            continue
+        for length in (len(label) - 1, len(label), len(label) + 1):
+            for start in range(max(0, len(text) - length + 1)):
+                if _one_edit(text[start:start + length], label):
+                    return 0.75
+    return 0.0
+
+
+def _physical_cells(words: list[Word], xs: list[float], ys: list[float]) -> list[list[str]]:
+    cells: list[list[list[Word]]] = [[[] for _ in range(len(xs) - 1)] for _ in range(len(ys) - 1)]
+    for word in words:
+        col = bisect.bisect_right(xs, word.left + word.width / 2) - 1
+        row = bisect.bisect_right(ys, word.top + word.height / 2) - 1
+        if 0 <= col < len(xs) - 1 and 0 <= row < len(ys) - 1:
+            cells[row][col].append(word)
+    return [[_cell_text(cell) for cell in row] for row in cells]
+
+
+def _body_start(rows: list[list[str]]) -> int | None:
+    for index, cells in enumerate(rows):
+        if any(_dates(cell) for cell in cells):
+            return index
+        numbered = any(re.fullmatch(r"\s*\d{1,3}[.)]?\s*", cell) for cell in cells[:3])
+        if numbered and sum(len(_times(cell)) for cell in cells) >= 1:
+            return index
+        identifier = any(re.fullmatch(r"[A-Za-z0-9\-]{4,30}", re.sub(r"\s+", "", cell))
+                         and len(re.findall(r"\d", cell)) >= 4 for cell in cells)
+        state = any(_compact(cell) in _VEHICLE_LABELS | _APPROVAL_LABELS for cell in cells)
+        if identifier and state:
+            return index
+    return None
+
+
+def _recognize_header(pix: fitz.Pixmap, words: list[Word], xs: list[float], ys: list[float], end_row: int | None = None) -> list[Word]:
+    """Retry a small header band rather than making the complete table larger."""
+    rows = _physical_cells(words, xs, ys)
+    first = end_row if end_row is not None else _body_start(rows)
+    if first == 0:
+        return []  # The screenshot begins with a data row; no header is present.
+    end = first if first is not None else min(2, len(ys) - 1)
+    x1, x2 = max(0, int(xs[0])), min(pix.width, int(xs[-1]) + 1)
+    y1, y2 = max(0, int(ys[0])), min(pix.height, int(ys[end]))
+    if x2 <= x1 or y2 <= y1:
+        return []
+    raw, stride, channels = pix.samples, pix.stride, pix.n
+    samples = b"".join(raw[y * stride + x1 * channels:y * stride + x2 * channels] for y in range(y1, y2))
+    crop = fitz.Pixmap(pix.colorspace, x2 - x1, y2 - y1, samples, False)
+    white = (255,) * crop.n
+    for x in xs:
+        local = int(x) - x1
+        crop.set_rect(fitz.IRect(max(0, local - 1), 0, min(crop.width, local + 2), crop.height), white)
+    for y in ys[:end + 1]:
+        local = int(y) - y1
+        crop.set_rect(fitz.IRect(0, max(0, local - 1), crop.width, min(crop.height, local + 2)), white)
+    scale = max(1.0, min(5.0, 6500 / crop.width, 1800 / crop.height))
+    retried = _run_ocr(crop, scale, psm=6)
+    if not retried:
+        return []
+    return [Word(w.text, w.left + x1, w.top + y1, w.width, w.height, w.confidence) for w in retried]
+
+
+def _resolve_layout(words: list[Word], xs: list[float], ys: list[float]) -> TableLayout:
+    """Use labels when readable, otherwise require a unique body-validated layout.
+
+    A date column alone is not evidence of a travel form. Body recovery also
+    checks the neighboring actual-time column, row numbers, names, employee-ID
+    shape and vehicle/approval fields. Requested times never supply actual times.
     """
     if len(xs) < 13 or len(ys) < 3:
         raise ValueError("출장 목록 표를 찾지 못했습니다. 열 제목과 표 테두리가 모두 보이도록 캡처해 주세요.")
-    header_bottom = ys[min(3, len(ys) - 1)]
-    headers = []
-    for left, right in zip(xs, xs[1:]):
-        cell_words = [w for w in words if left <= w.left + w.width / 2 < right and ys[0] <= w.top + w.height / 2 < header_bottom]
-        headers.append(re.sub(r"\s+", "", _cell_text(cell_words)))
-    anchors: dict[str, int] = {}
-    patterns = {
-        "department": ("부서",), "rank": ("직급",), "name": ("출장자", "줄장자", "줄잠자", "출잠자", "성명"),
-        "requested": ("출장기간", "줄장기간", "신청기간"), "destination": ("출장지",),
-        "purpose": ("출장목적", "줄장목적", "목적"), "vehicle": ("공용차량", "공용", "차량"),
-        "approval": ("결재상태", "결재"),
-    }
-    for key, labels in patterns.items():
-        for index, text in enumerate(headers):
-            if any(label in text for label in labels):
-                anchors[key] = index
-                break
-    if len(anchors) < 5 or any(k not in anchors for k in ("department", "name", "requested")):
-        raise ValueError("출장 목록 열 제목을 인식하지 못했습니다. 열 제목이 포함된 선명한 캡처를 넣어 주세요.")
-    department, name, requested = (anchors[k] for k in ("department", "name", "requested"))
-    if department < 1 or name != department + 2 or requested - name not in (3, 4) or requested + 6 >= len(xs):
-        raise ValueError("출장 목록의 열 구성이 예상과 다릅니다. 부서부터 결재상태까지 모두 포함해 캡처해 주세요.")
-    expected = {"rank": department + 1, "destination": requested + 1, "purpose": requested + 2, "vehicle": requested + 4, "approval": requested + 5}
-    if any(key in anchors and anchors[key] != index for key, index in expected.items()):
-        raise ValueError("출장 목록 열 순서를 확인하지 못했습니다. 열 제목과 표 전체가 보이도록 캡처해 주세요.")
-    indices = [department - 1, department, department + 1, name, name + 1, name + 2]
-    indices += list(range(requested, requested + 7))
-    return [xs[index] for index in indices]
+    rows = _physical_cells(words, xs, ys)
+    first_body = _body_start(rows)
+    header_end = first_body if first_body is not None else min(2, len(rows))
+    headers = [" ".join(row[col] for row in rows[:header_end]) for col in range(len(xs) - 1)]
+    candidates = []
+    for department in range(1, min(5, len(xs) - 10)):
+        for actual_span in (1, 2):
+            requested = department + 4 + actual_span
+            if requested + 6 >= len(xs):
+                continue
+            roles = {"department": department, "rank": department + 1, "name": department + 2,
+                     "requested": requested, "destination": requested + 1, "purpose": requested + 2,
+                     "vehicle": requested + 4, "approval": requested + 5}
+            scores = {role: _header_score(headers[column], role) for role, column in roles.items()}
+            header_score = sum(scores.values())
+            # A clearly identified column in a different position is not an OCR
+            # spelling error. Never shift its values into the proposed column.
+            contradiction = False
+            for role, expected in roles.items():
+                exact = [index for index, text in enumerate(headers) if _header_score(text, role) == 1]
+                if exact and expected not in exact:
+                    contradiction = True
+                    break
+            if contradiction:
+                continue
+            evidence = []
+            body_rows = []
+            numbers = []
+            date_rows = 0
+            clear_header_rows = []
+            partial_rows = set()
+            for index, cells in enumerate(rows):
+                number = cells[department - 1].strip()
+                name = re.sub(r"\s+", "", cells[department + 2])
+                identifier = re.sub(r"\s+", "", cells[department + 3])
+                actual = " ".join(cells[department + 4:requested])
+                dates = _dates(cells[requested])
+                times = _times(actual)
+                numbered = re.fullmatch(r"\d{1,3}[.)]?", number) is not None
+                name_valid = re.fullmatch(r"[가-힣A-Za-z·.\-]{2,30}", name) is not None
+                id_valid = (re.fullmatch(r"[A-Za-z0-9\-]{4,30}", identifier) is not None
+                            and len(re.findall(r"\d", identifier)) >= 4)
+                metadata = sum(bool(re.search(r"[가-힣A-Za-z]{2}", _compact(cells[c]))) for c in (department, department + 1))
+                vehicle = _compact(cells[requested + 4]) in _VEHICLE_LABELS
+                approval = _compact(cells[requested + 5]) in _APPROVAL_LABELS
+                row_headers = sum(_header_score(cells[column], role) > 0 for role, column in roles.items())
+                if row_headers >= 2 and not (numbered or dates or times or id_valid or vehicle or approval):
+                    clear_header_rows.append(index)
+                if name_valid and metadata and (id_valid or vehicle or approval or row_headers < 2):
+                    partial_rows.add(index)
+                record_metadata = name_valid or metadata or id_valid or vehicle or approval
+                if not (numbered or ((dates or times) and record_metadata)):
+                    continue
+                body_rows.append(index)
+                if numbered:
+                    numbers.append(int(re.sub(r"\D", "", number)))
+                date_rows += bool(dates)
+                identity_supported = id_valid or metadata == 2
+                number_supported = numbered or (not re.search(r"[가-힣]", number)
+                                                 and len(_compact(number)) <= 3
+                                                 and vehicle and approval and metadata == 2)
+                strong = len(dates) >= 2 and len(times) == 2 and number_supported and name_valid and identity_supported and metadata >= 1 and (vehicle or approval)
+                evidence.append((strong, vehicle and approval and metadata == 2))
+            strong_count = sum(item[0] for item in evidence)
+            sequence = len(numbers) == len(set(numbers)) and all(b > a for a, b in zip(numbers, numbers[1:]))
+            # Full readable headings also support rows whose actual time is
+            # missing. Missing values remain blank and therefore need review.
+            trusted_header = header_score >= 5 and any(scores[k] for k in ("department", "name", "requested"))
+            minimum = 1 if len(body_rows) == 1 and evidence and evidence[0][1] else 2
+            body_supported = (strong_count >= minimum and strong_count >= len(body_rows) * 0.6 and sequence)
+            if not (trusted_header or body_supported):
+                continue
+            # If a table body has dates but none in this candidate's period
+            # column, even otherwise plausible labels cannot validate its layout.
+            if first_body is not None and body_rows and not date_rows:
+                continue
+            start = min(body_rows) if body_rows else (header_end if header_end < len(rows) else 1)
+            # An unreadable No/date/time in the first trip is still a trip.
+            # Use recognizable header rows and adjacent identity/metadata rows
+            # to retain it with missing-value warnings rather than dropping it.
+            preceding_headers = [index for index in clear_header_rows if index < start]
+            if preceding_headers:
+                start = min(start, max(preceding_headers) + 1)
+            else:
+                while start > 0 and start - 1 in partial_rows:
+                    start -= 1
+            indices = [department - 1, department, department + 1, department + 2, department + 3, department + 4]
+            indices += list(range(requested, requested + 7))
+            recovered = not trusted_header or not all(scores[k] == 1 for k in ("department", "name", "requested"))
+            score = header_score * 2 + (strong_count / max(1, len(body_rows))) * 8
+            candidates.append((score, TableLayout([xs[index] for index in indices], start, recovered)))
+    if not candidates:
+        raise ValueError("표의 열 배치를 확정하지 못했습니다. 부서·실제 확인시각·신청 출장기간·결재상태가 보이는 원본 캡처로 다시 시도해 주세요.")
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    if len(candidates) > 1 and candidates[0][0] - candidates[1][0] < 2:
+        raise ValueError("표의 열 배치가 두 가지 이상으로 읽힙니다. 부서부터 결재상태까지 보이도록 표 부분을 잘라 다시 넣어 주세요.")
+    return candidates[0][1]
+
+
+def _logical_grid(words: list[Word], xs: list[float], ys: list[float]) -> list[float]:
+    """Backward-compatible helper; the parser also keeps the validated data start."""
+    return _resolve_layout(words, xs, ys).xs
 
 
 def _dates(text: str) -> list[str]:
@@ -357,7 +542,8 @@ def _parse_cells(cells: dict[str, str], row_number: int) -> tuple[dict, list[str
     warnings: list[str] = []
     name = re.sub(r"\s+", "", cells.get("name", ""))
     if not name or not re.search(r"[가-힣A-Za-z]", name):
-        raise ValueError(f"{row_number}행 출장자 이름을 읽지 못했습니다. 더 선명하게 캡처해 주세요.")
+        name = ""
+        warnings.append(f"{row_number}행: 출장자 이름을 읽지 못했습니다. 원본과 대조해 직접 입력해 주세요.")
     actual = cells.get("actual", "")
     actual_times = _times(actual)
     start_time = end_time = ""
@@ -414,7 +600,7 @@ def _parse_cells(cells: dict[str, str], row_number: int) -> tuple[dict, list[str
     return trip, warnings
 
 
-def _parse_table(words: list[Word], xs: list[float], ys: list[float], review_notes: dict[int, list[str]] | None = None) -> tuple[list[dict], list[str]]:
+def _parse_table(words: list[Word], xs: list[float], ys: list[float], review_notes: dict[int, list[str]] | None = None, first_data_row: int | None = None) -> tuple[list[dict], list[str]]:
     if len(xs) != 13 or len(ys) < 3:
         raise ValueError("12열 출장 목록 표를 찾지 못했습니다. 열 제목과 표 테두리가 모두 보이도록 캡처해 주세요.")
     rows: list[list[list[Word]]] = [[[] for _ in _COLUMNS] for _ in range(len(ys) - 1)]
@@ -424,16 +610,18 @@ def _parse_table(words: list[Word], xs: list[float], ys: list[float], review_not
         if 0 <= col < 12 and 0 <= row < len(rows):
             rows[row][col].append(word)
     texts = [{key: _cell_text(cell) for key, cell in zip(_COLUMNS, row)} for row in rows]
-    header = -1
-    for index, cells in enumerate(texts[:4]):
-        compact = re.sub(r"\s+", "", " ".join(cells.values()))
-        if sum(label in compact for label in ("부서", "직급", "출장자", "출장지", "출장목적", "결재")) >= 3:
-            header = index
-            break
-    if header == -1:
-        raise ValueError("출장 목록 열 제목을 인식하지 못했습니다. 열 제목이 포함된 선명한 캡처를 넣어 주세요.")
+    if first_data_row is None:
+        header = -1
+        for index, cells in enumerate(texts[:4]):
+            compact = re.sub(r"\s+", "", " ".join(cells.values()))
+            if sum(label in compact for label in ("부서", "직급", "출장자", "출장지", "출장목적", "결재")) >= 3:
+                header = index
+                break
+        if header == -1:
+            raise ValueError("표의 열 배치를 확정하지 못했습니다. 원본 캡처의 열 제목과 표 부분을 확인해 주세요.")
+        first_data_row = header + 1
     trips, warnings = [], []
-    for index in range(header + 1, len(texts)):
+    for index in range(first_data_row, len(texts)):
         cells = texts[index]
         if not any(cells.values()):
             continue
@@ -478,10 +666,54 @@ def parse_image(image_bytes: bytes, filename: str = "capture.png") -> dict:
     words = _recognize(pix, xs, ys)
     if not words:
         raise ValueError("이미지에서 글자를 읽지 못했습니다. 선명한 캡처 파일을 넣어 주세요.")
-    logical_xs = _logical_grid(words, xs, ys)
-    words, review_notes = _refine_identity_columns(pix, words, logical_xs, ys)
-    words = _refine_actual_times(pix, words, logical_xs, ys)
-    trips, warnings = _parse_table(words, logical_xs, ys, review_notes)
+    # The source system also exports a distinct 18-column monthly report.
+    # Its geometry and field meanings must be handled before the 12-column UI.
+    if len(xs) >= 18:
+        if __package__:
+            from .monthly_report import try_parse_monthly_image
+        else:
+            from monthly_report import try_parse_monthly_image
+        monthly = try_parse_monthly_image(pix, xs, ys, words, filename)
+        if monthly is not None:
+            return monthly
+    layout = None
+    try:
+        layout = _resolve_layout(words, xs, ys)
+    except ValueError:
+        pass
+    retried_header = layout is None or layout.recovered
+    if retried_header:
+        header_end = layout.first_data_row if layout is not None else _body_start(_physical_cells(words, xs, ys))
+        if header_end is None:
+            header_end = min(2, len(ys) - 1)
+        header_words = _recognize_header(pix, words, xs, ys, header_end)
+        # A second OCR view replaces the header band; never append a second
+        # copy of a date/time/name that could be mistaken for another value.
+        def in_header(word):
+            return (xs[0] <= word.left + word.width / 2 < xs[-1]
+                    and ys[0] <= word.top + word.height / 2 < ys[header_end])
+        header_words = [word for word in header_words if in_header(word)]
+        combined = [word for word in words if not in_header(word)] + header_words if header_words else words
+        try:
+            retried_layout = _resolve_layout(combined, xs, ys)
+        except ValueError:
+            if layout is None:
+                raise
+            # A second OCR view can be worse than the first. A previously
+            # unique body-validated layout remains a reviewable recovery.
+        else:
+            if layout is not None and layout.xs != retried_layout.xs:
+                raise ValueError("표의 열 배치가 재인식 전후 다릅니다. 원본 표 부분을 잘라 다시 넣어 주세요.")
+            words = combined
+            layout = retried_layout
+    logical_xs = layout.xs
+    words, review_notes = _refine_identity_columns(pix, words, logical_xs, ys, layout.first_data_row)
+    words = _refine_actual_times(pix, words, logical_xs, ys, layout.first_data_row)
+    if layout.recovered:
+        note = "열 제목 일부를 읽지 못해 표선·본문 날짜·실제시각·이름/차량 정보를 교차 확인하여 열 배치를 복구했습니다. 원본의 각 열과 인식 결과가 맞는지 반드시 대조해 주세요."
+        for index in range(layout.first_data_row, len(ys) - 1):
+            review_notes.setdefault(index, []).append(note)
+    trips, warnings = _parse_table(words, logical_xs, ys, review_notes, layout.first_data_row)
     warnings.insert(0, "OCR 결과입니다. 이름·날짜·실제 확인시각·공용차량 사용 여부를 원본과 대조한 뒤 PDF를 만드세요.")
     source_name = re.split(r"[/\\]", str(filename))[-1] or "capture.png"
     return {"trips": trips, "warnings": warnings, "source_name": source_name}

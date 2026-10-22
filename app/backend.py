@@ -20,9 +20,13 @@ MAX_REQUEST = 29 * 1024 * 1024
 
 def parse_capture(payload, filename):
     if not payload or len(payload) > MAX_IMAGE:
-        raise ValueError("20MB 이하의 캡처 이미지 파일을 선택해 주세요.")
-    from ocr_parser import parse_image
-    parsed = parse_image(payload, filename)
+        raise ValueError("20MB 이하의 캡처 이미지 또는 PDF 파일을 선택해 주세요.")
+    if payload.lstrip().startswith(b"%PDF-"):
+        from monthly_report import parse_pdf
+        parsed = parse_pdf(payload, filename)
+    else:
+        from ocr_parser import parse_image
+        parsed = parse_image(payload, filename)
     for trip in parsed["trips"]:
         if any(s in trip.get("approval_status", "") for s in ("미신청", "취소", "반려", "결재중", "미결재")):
             trip["include"] = False
@@ -42,7 +46,7 @@ class AppServer(HTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "TravelClaim/1.0"
+    server_version = "TravelClaim/0.2.0"
 
     def log_message(self, *args):
         pass  # Names, image contents, and application records are never logged.
@@ -90,7 +94,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             size = int(self.headers.get("Content-Length", "0"))
             if not 0 < size <= MAX_REQUEST:
-                raise ValueError("요청이 너무 크거나 비어 있습니다. 20MB 이하 이미지를 사용해 주세요.")
+                raise ValueError("요청이 너무 크거나 비어 있습니다. 20MB 이하 이미지 또는 PDF를 사용해 주세요.")
             data = json.loads(self.rfile.read(size))
             if not isinstance(data, dict):
                 raise ValueError("요청 형식이 올바르지 않습니다.")
@@ -98,7 +102,7 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     raw = base64.b64decode(data.get("data", ""), validate=True)
                 except (ValueError, TypeError):
-                    raise ValueError("이미지 데이터가 손상되었습니다. 파일을 다시 선택해 주세요.") from None
+                    raise ValueError("파일 데이터가 손상되었습니다. 파일을 다시 선택해 주세요.") from None
                 result = parse_capture(raw, str(data.get("filename", "capture.png"))[:240])
             elif self.path == "/api/recalculate":
                 result = recalculate(data.get("trips"), data.get("rates"))
@@ -127,11 +131,11 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="캡처 이미지 → 여비지급명세서 PDF (오프라인)")
+    parser = argparse.ArgumentParser(description="캡처 이미지 또는 출장 월별집계 PDF → 여비지급명세서 PDF (오프라인)")
     parser.add_argument("--desktop", action="store_true")
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--port", type=int, default=0)
-    parser.add_argument("--convert", metavar="IMAGE")
+    parser.add_argument("--convert", metavar="IMAGE_OR_PDF")
     parser.add_argument("--output", metavar="PDF")
     args = parser.parse_args()
     if args.convert:
