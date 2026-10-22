@@ -11,12 +11,13 @@
   .image-preview{margin-top:15px;overflow:hidden}.image-preview summary{cursor:pointer;padding:12px 16px;font-size:12px;font-weight:700}.image-preview summary span{font-size:11px;font-weight:400;color:var(--muted);margin-left:10px}.image-preview img{display:block;max-width:100%;max-height:450px;width:auto;margin:auto;padding:0 12px 12px;object-fit:contain}.rates-panel{margin-bottom:18px;padding:18px 21px}.rates-heading{display:flex;align-items:flex-start;gap:15px;justify-content:space-between}.rates-heading p{font-size:11px;color:var(--muted);margin-top:5px}.rates-fields{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:16px}.rates-fields input{width:100%;height:36px;border:1px solid #ccdadd;border-radius:5px;padding:7px 9px;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}.rates-note{font-size:11px;color:var(--muted);margin-top:10px}.confirmations{padding:17px 21px;margin-top:18px}.confirmations label{display:flex;align-items:flex-start;gap:9px;font-size:13px;cursor:pointer}.confirmations label+label{margin-top:11px}.confirmations input{accent-color:var(--teal);width:16px;height:16px;margin:3px 0 0;flex:none}.confirmations p{font-size:11px;color:var(--muted);margin-top:10px}.include-checkbox{width:16px!important;min-height:16px!important;height:16px;margin:0;accent-color:var(--teal)}.excluded td:not(:first-child){opacity:.4}.approval-pill{display:block;padding:6px 3px;font-size:11px;overflow-wrap:anywhere}.approval-pill.pending{color:var(--amber)}.requested-time{font-size:10px;line-height:1.6;color:var(--muted);margin-top:6px}.trips-table{min-width:2200px}.dirty-note{color:var(--amber)!important}@media(max-width:780px){.rates-panel{padding:17px}.rates-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.rates-heading{flex-direction:column}.rates-heading button{align-self:flex-end}.confirmations{padding:17px}.confirmations label{font-size:12px}}
   .preview-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:0 16px 12px}.preview-status{flex:1;min-width:180px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.preview-status.failed{color:var(--red)}.preview-file-name{overflow-wrap:anywhere}.preview-toolbar .secondary{font-size:11px;padding:6px 10px}
   .pdf-placeholder{margin:0 16px 16px;padding:26px 16px;border:1px dashed #ccdadd;border-radius:7px;background:#f7fafb;text-align:center;color:var(--muted);font-size:12px}.pdf-placeholder strong{display:block;font-size:15px;color:var(--ink);margin-bottom:5px}.preview-note{padding:0 16px 12px;font-size:11px;color:var(--muted)}
+  .diagnostic-box{margin-top:9px;border:1px solid #e2cdd0;border-radius:7px;background:#fff}.diagnostic-box summary{cursor:pointer;padding:10px 14px;font-size:12px;color:var(--red);font-weight:700}.diagnostic-box p{padding:0 14px 9px;font-size:11px;color:var(--muted)}.diagnostic-box textarea{display:block;width:calc(100% - 28px);margin:0 14px;padding:10px;border:1px solid var(--line);border-radius:5px;background:#f7f9fa;color:var(--ink);font:11px/1.6 Consolas,monospace;resize:vertical;white-space:pre-wrap}.diagnostic-actions{display:flex;align-items:center;gap:10px;padding:10px 14px}.diagnostic-actions span{font-size:11px;color:var(--muted)}
   </style>
 </head>
 <body>
   <header class="masthead"><div class="masthead-inner">
     <div class="brand-icon" aria-hidden="true"><svg width="23" height="25" viewBox="0 0 23 25" fill="none"><path d="M4 1.5h10L20 8v15H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 2v6h6M8 12h8M8 16h8M8 20h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-    <div><div class="brand">여비청구서 변환기</div><div class="brand-sub">TRAVEL CLAIM ASSISTANT · v0.2.0</div></div>
+    <div><div class="brand">여비청구서 변환기</div><div class="brand-sub">TRAVEL CLAIM ASSISTANT · v0.2.1</div></div>
     <div class="masthead-spacer"></div><span class="local-badge">내 PC에서 처리</span><button class="exit-btn" id="exitButton" type="button">종료</button>
   </div></header>
   <main>
@@ -31,6 +32,7 @@
     <div class="notice"><span class="notice-icon" aria-hidden="true">ⓘ</span><p>파일은 외부 서버로 전송하지 않고 이 컴퓨터에서 처리합니다. 인식 결과는 원본과 대조해 주세요. 신청시간과 실제 출장시간을 구분해 확인합니다.</p></div>
     <details class="panel image-preview" id="imagePreview" hidden><summary>원본 자료 확인 <span class="preview-file-name" id="previewFileName"></span><span>개인정보가 포함될 수 있습니다.</span></summary><div class="preview-toolbar"><p class="preview-status" id="previewStatus"></p><button class="secondary" id="openImageButton" type="button">크게 보기</button><button class="secondary" id="previousSourceButton" type="button" hidden>이전 내역 원본 보기</button><button class="secondary" id="retryButton" type="button" hidden>이 캡처 다시 인식</button></div><p class="preview-note" id="previewNote" hidden></p><div class="pdf-placeholder" id="pdfPlaceholder" hidden><strong>PDF 원본</strong><span>인식 후 첫 페이지 미리보기를 표시합니다. 원본은 “PDF 원본 열기”로 확인할 수 있습니다.</span></div><img id="sourceImage" alt="불러온 출장 화면 원본 캡처" hidden></details>
     <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+    <details class="diagnostic-box" id="diagnosticBox" hidden><summary>오류 진단 정보</summary><p>문제 문의 시 아래 정보를 복사해 전달할 수 있습니다. 원본 문서와 출장 내역은 이 정보에 포함하지 않습니다.</p><textarea id="diagnosticText" rows="5" readonly aria-label="오류 진단 정보"></textarea><div class="diagnostic-actions"><button class="secondary small" id="copyDiagnosticButton" type="button">진단 정보 복사</button><span id="copyDiagnosticStatus" role="status" aria-live="polite"></span></div></details>
     <section class="empty" id="emptyState"><strong id="emptyTitle">아직 불러온 출장 내역이 없습니다.</strong><p id="emptyText">이미지를 넣으면 출장 내역과 확인할 항목이 이곳에 표시됩니다.</p></section>
     <div class="workspace" id="workspace" hidden>
       <section class="metrics" aria-label="출장 내역 요약"><div class="panel metric"><span class="metric-label">청구 포함 출장</span><span class="metric-value"><span id="tripCount">0</span><small>건</small></span></div><div class="panel metric"><span class="metric-label">확인 필요</span><span class="metric-value amber"><span id="reviewCount">0</span><small>건</small></span></div><div class="panel metric"><span class="metric-label">입력된 청구액</span><span class="metric-value teal"><span id="claimTotal">0</span><small>원</small></span></div></section>
@@ -44,10 +46,11 @@
       <section class="panel export-panel" aria-label="명세서 저장 설정"><div class="export-fields"><label class="export-field"><span class="field-label">대조 확인자 직급 · 선택</span><input id="officerTitle" type="text" placeholder="예: 지방행정주사" maxlength="80" autocomplete="off"></label><label class="export-field"><span class="field-label">대조 확인자 성명 · 선택</span><input id="officerName" type="text" placeholder="확인자 성명" maxlength="40" autocomplete="off"></label></div><button class="primary export-button" id="renderButton" type="button"><svg width="16" height="17" viewBox="0 0 16 17" fill="none" aria-hidden="true"><path d="M8 1v10m0 0L4 7m4 4 4-4M2 12v3h12v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="renderLabel">명세서 PDF 저장</span></button></section>
       <p class="export-note">기준·인식 결과 미확인, 필수 정보 누락 또는 결재 미완료가 있으면 검토용 초안으로 저장합니다. 서명·날인은 공란으로 둡니다.</p>
     </div>
-  </main><footer><span>여비청구서 변환기 v0.2.0 · 로컬 문서 도구</span><span>원본 이미지는 변경하지 않습니다.</span></footer>
+  </main><footer><span>여비청구서 변환기 v0.2.1 · 로컬 문서 도구</span><span>원본 이미지는 변경하지 않습니다.</span></footer>
   <script>
     'use strict';
     const SESSION_TOKEN = '__SESSION_TOKEN__';
+    const APP_VERSION = '0.2.1';
     const $ = id => document.getElementById(id);
     const state = {trips: [], warnings: [], sourceName: '', busy: false, completed: false, calculationDirty: false, previewUrl: null, previewFile: null, attemptFile: null, sourceFile: null, sourcePreviewData: null, sourcePreviewNote: ''};
     const moneyFields = ['daily_allowance', 'meal', 'lodging', 'transport', 'other', 'claim_amount'];
@@ -65,13 +68,26 @@
     const approved = trip => String(trip.approval_status || '').replace(/\s/g, '') === '결재완료';
 
     function showMessage(text, kind = 'loading') {
+      $('diagnosticBox').hidden = true; $('diagnosticBox').open = false; $('diagnosticText').value = ''; $('copyDiagnosticStatus').textContent = '';
       const node = $('message'); node.textContent = ''; node.className = 'message ' + kind;
       if (kind === 'loading') {const spinner = document.createElement('span'); spinner.className = 'spinner'; spinner.setAttribute('aria-hidden', 'true'); node.appendChild(spinner);}
       node.appendChild(document.createTextNode(text)); node.hidden = false;
     }
+    function showError(err, extra = '') {
+      showMessage(errorText(err) + extra, 'error');
+      const code = typeof err?.errorCode === 'string' ? err.errorCode.slice(0, 160) : '';
+      const diagnostic = typeof err?.diagnostics === 'string' ? err.diagnostics.slice(0, 6000) : '';
+      const status = Number.isInteger(err?.httpStatus) ? err.httpStatus : null;
+      if (!code && !diagnostic && status === null) return;
+      const lines = ['화면 버전: v' + APP_VERSION];
+      if (code) lines.push('오류 코드: ' + code);
+      if (status !== null) lines.push('HTTP 상태: ' + status);
+      if (diagnostic) lines.push(diagnostic);
+      $('diagnosticText').value = lines.join('\n'); $('diagnosticBox').hidden = false;
+    }
     function setBusy(value) {
       state.busy = value;
-      for (const id of ['selectButton','exitButton','fileInput','retryButton','previousSourceButton','openImageButton','officerTitle','officerName','ratesConfirmed','dataConfirmed',...Object.values(rateIds)]) $(id).disabled = value;
+      for (const id of ['selectButton','exitButton','fileInput','retryButton','previousSourceButton','openImageButton','copyDiagnosticButton','officerTitle','officerName','ratesConfirmed','dataConfirmed',...Object.values(rateIds)]) $(id).disabled = value;
       $('renderButton').disabled = value || !state.trips.some(included); $('recalculateButton').disabled = value || !state.trips.some(included); $('tripRows').inert = value;
     }
     async function api(path, data) {
@@ -79,8 +95,17 @@
       try {response = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Session-Token': SESSION_TOKEN}, body: JSON.stringify(data)});}
       catch (_) {throw new Error('프로그램에 연결할 수 없습니다. 실행파일을 다시 열어 주세요.');}
       let result;
-      try {result = await response.json();} catch (_) {throw new Error('프로그램에서 올바른 응답을 받지 못했습니다. 다시 시도해 주세요.');}
-      if (!response.ok || result.error) throw new Error(typeof result.error === 'string' ? result.error : (result.message || '요청을 처리하지 못했습니다.'));
+      try {result = await response.json();} catch (_) {
+        const failure = new Error('프로그램에서 올바른 응답을 받지 못했습니다. 다시 시도해 주세요.');
+        failure.httpStatus = response.status; failure.errorCode = 'INVALID_RESPONSE'; throw failure;
+      }
+      if (!response.ok || result.error) {
+        const failure = new Error(typeof result.error === 'string' ? result.error : (result.message || '요청을 처리하지 못했습니다.'));
+        failure.httpStatus = response.status;
+        failure.errorCode = typeof result.error_code === 'string' ? result.error_code : '';
+        failure.diagnostics = typeof result.diagnostics === 'string' ? result.diagnostics : '';
+        throw failure;
+      }
       return result;
     }
     function fileAsBase64(file) {return new Promise((resolve, reject) => {const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = () => reject(new Error('파일을 읽지 못했습니다. 다른 파일로 다시 시도해 주세요.')); reader.readAsDataURL(file);});}
@@ -131,7 +156,7 @@
           $('emptyTitle').textContent = kind + '를 인식하지 못했습니다.'; $('emptyText').textContent = '위 원본을 확인하고 “이 ' + kind + ' 다시 인식”을 누르거나 다른 캡처 / PDF를 선택해 주세요.';
           $('step1').classList.add('active'); $('step2').classList.remove('active'); $('step3').classList.remove('active');
         }
-        showMessage(errorText(err) + '\n' + retained, 'error');
+        showError(err, '\n' + retained);
       } finally {setBusy(false); $('fileInput').value = '';}
     }
     function markEdited(field) {
@@ -225,14 +250,14 @@
     }
     async function recalculate() {
       if (state.busy || !state.trips.some(included)) return; let rates;
-      try {rates = readRates();} catch (err) {showMessage(errorText(err), 'error'); return;}
+      try {rates = readRates();} catch (err) {showError(err); return;}
       setBusy(true); showMessage('확인된 실제 출장시간과 차량 사용 여부로 일비를 다시 계산합니다…');
       try {
         const result = await api('/api/recalculate', {trips: normalizedTrips(), rates});
         if (!Array.isArray(result.trips) || !result.trips.length) throw new Error('계산된 출장 내역이 없습니다. 입력 정보를 확인해 주세요.');
         state.trips = result.trips.map(trip => ({...trip, include: trip.include !== false})); state.warnings = Array.isArray(result.warnings) ? result.warnings.map(String) : []; state.calculationDirty = false; state.completed = false; $('ratesConfirmed').checked = false; $('dataConfirmed').checked = false; $('step3').classList.remove('active');
         renderRows(); updateSummary(); showMessage('일비를 다시 계산했습니다. 변경된 금액과 동일인·동일일 상한 적용 결과를 확인해 주세요.', 'success');
-      } catch (err) {showMessage(errorText(err), 'error');} finally {setBusy(false);}
+      } catch (err) {showError(err);} finally {setBusy(false);}
     }
     function downloadPdf(base64, filename) {
       const binary = atob(base64); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -241,7 +266,7 @@
     async function renderPdf() {
       if (state.busy || !state.trips.some(included)) return;
       if (state.trips.some(trip => included(trip) && (moneyFields.some(field => !validMoney(trip[field])) || invalidDuration(durationMinutes(trip))))) {showMessage('붉은색으로 표시된 금액과 출장기간을 확인해 주세요. 금액은 0 이상의 정수로 입력해야 합니다.', 'error'); return;}
-      let rates; try {rates = readRates();} catch (err) {showMessage(errorText(err), 'error'); return;}
+      let rates; try {rates = readRates();} catch (err) {showError(err); return;}
       setBusy(true); showMessage('입력 내용을 여비지급명세서 PDF로 만드는 중입니다…');
       try {
         const result = await api('/api/render', {trips: normalizedTrips(), officer_title: $('officerTitle').value.trim(), officer_name: $('officerName').value.trim(), source_name: state.sourceName, rates, rates_confirmed: $('ratesConfirmed').checked && !state.calculationDirty, data_confirmed: $('dataConfirmed').checked});
@@ -249,8 +274,18 @@
         downloadPdf(result.data, result.filename); state.completed = true; $('step3').classList.add('active');
         const notes = Array.isArray(result.warnings) && result.warnings.length ? '\n' + result.warnings.join('\n') : '';
         showMessage((result.is_draft ? '검토용 PDF를 생성했습니다. 미확인 항목과 지급대상을 확인해 주세요.' : '명세서 PDF를 생성했습니다. 제출 전 내용과 금액을 최종 확인해 주세요.') + '\n브라우저의 다운로드 파일에서 확인할 수 있습니다.' + notes, 'success');
-      } catch (err) {showMessage(errorText(err), 'error');} finally {setBusy(false);}
+      } catch (err) {showError(err);} finally {setBusy(false);}
     }
+    $('copyDiagnosticButton').addEventListener('click', async () => {
+      const text = $('diagnosticText').value; if (!text) return;
+      let copied = false;
+      try {if (navigator.clipboard && navigator.clipboard.writeText) {await navigator.clipboard.writeText(text); copied = true;}} catch (_) {}
+      if (!copied) {
+        const field = $('diagnosticText'); field.focus(); field.select();
+        try {copied = document.execCommand('copy');} catch (_) {}
+      }
+      $('copyDiagnosticStatus').textContent = copied ? '진단 정보를 복사했습니다.' : '아래 내용을 선택한 뒤 Ctrl+C로 복사해 주세요.';
+    });
     $('retryButton').addEventListener('click', () => loadFile(state.attemptFile, true));
     $('openImageButton').addEventListener('click', () => {if (state.previewUrl && !state.busy) window.open(state.previewUrl, '_blank', 'noopener');});
     $('previousSourceButton').addEventListener('click', () => {
@@ -270,7 +305,7 @@
     let dragDepth = 0; const dropZone = $('dropZone');
     dropZone.addEventListener('dragenter', event => {event.preventDefault(); if (!state.busy) {dragDepth++; dropZone.classList.add('drag');}}); dropZone.addEventListener('dragover', event => {event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = state.busy ? 'none' : 'copy';}); dropZone.addEventListener('dragleave', event => {event.preventDefault(); dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropZone.classList.remove('drag');}); dropZone.addEventListener('drop', event => {event.preventDefault(); dragDepth = 0; dropZone.classList.remove('drag'); if (!state.busy) {if (event.dataTransfer.files.length > 1) showMessage('한 번에 캡처 또는 PDF 한 개를 선택해 주세요.', 'error'); else loadFile(event.dataTransfer.files[0]);}});
     window.addEventListener('dragover', event => event.preventDefault()); window.addEventListener('drop', event => event.preventDefault());
-    $('exitButton').addEventListener('click', async () => {if (state.busy) return; if (state.trips.length && !state.completed && !window.confirm('저장하지 않은 내용이 있습니다. 프로그램을 종료할까요?')) return; try {await api('/api/shutdown', {}); $('workspace').hidden = true; $('emptyState').hidden = true; $('dropZone').hidden = true; $('imagePreview').hidden = true; $('exitButton').disabled = true; showMessage('프로그램을 종료했습니다. 이 브라우저 탭을 닫아 주세요.', 'success');} catch (err) {showMessage(errorText(err), 'error');}});
+    $('exitButton').addEventListener('click', async () => {if (state.busy) return; if (state.trips.length && !state.completed && !window.confirm('저장하지 않은 내용이 있습니다. 프로그램을 종료할까요?')) return; try {await api('/api/shutdown', {}); $('workspace').hidden = true; $('emptyState').hidden = true; $('dropZone').hidden = true; $('imagePreview').hidden = true; $('exitButton').disabled = true; showMessage('프로그램을 종료했습니다. 이 브라우저 탭을 닫아 주세요.', 'success');} catch (err) {showError(err);}});
   </script>
 </body>
 </html>

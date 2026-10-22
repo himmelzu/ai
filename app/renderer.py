@@ -145,6 +145,20 @@ def _wrap(text, font, size, width):
     return lines or [""]
 
 
+def _serialize_pdf(document):
+    """Keep a complete PDF if optional font subsetting fails on this computer."""
+    original = document.tobytes(garbage=4, deflate=True)
+    # fontTools writes temporary files and PyMuPDF replaces font objects in
+    # place. Work on a separate document so even a partially failed replacement
+    # cannot affect the complete, already rendered statement.
+    with fitz.open(stream=original, filetype="pdf") as compact:
+        try:
+            compact.subset_fonts(fallback=True)
+            return compact.tobytes(garbage=4, deflate=True), False
+        except Exception:
+            return original, True
+
+
 def render_pdf(raw_trips, *, rates=None, rates_confirmed=False, data_confirmed=False,
                officer_title="", officer_name="", source_name="", **ignored):
     active_rates = validate_rates(rates)
@@ -272,9 +286,12 @@ def render_pdf(raw_trips, *, rates=None, rates_confirmed=False, data_confirmed=F
             text_box(page,fitz.Rect(left,y+29,right,y+46),f"전체 {len(selected)}건 · 전체 경비 합계: "+("확인 필요" if missing else f"{all_total:,}원"),9)
         text_box(page,fitz.Rect(left,height-38,right,height-23),f"{page_number} / {len(batches)}   ·   캡처 인식 후 확인하여 작성",7,color=(0.4,0.44,0.43))
     document.set_metadata({"title":"여비지급명세서"+(" (검토용)" if draft else ""),"producer":"여비청구서 변환기"})
-    # The CFF Korean font needs fontTools subsetting; the full typeface would add
-    # roughly 13 MB to every statement even when only a few glyphs are used.
-    document.subset_fonts(fallback=True)
-    payload=document.tobytes(garbage=4,deflate=True)
-    document.close()
+    # Subsetting reduces the full Korean typeface by roughly 13 MB, but a
+    # temporary-folder restriction must not prevent saving a complete PDF.
+    try:
+        payload, font_optimization_skipped = _serialize_pdf(document)
+    finally:
+        document.close()
+    if font_optimization_skipped:
+        warnings.append("이 환경에서는 글꼴 용량 줄이기를 생략했습니다. 내용과 금액은 그대로이며 PDF 파일 크기가 클 수 있습니다.")
     return payload,{"is_draft":draft,"warnings":warnings,"count":len(selected)}

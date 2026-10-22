@@ -10,12 +10,42 @@ from pathlib import Path
 import secrets
 import sys
 import threading
+import traceback
 import webbrowser
 
 from renderer import recalculate, render_pdf
 
 MAX_IMAGE = 20 * 1024 * 1024
 MAX_REQUEST = 29 * 1024 * 1024
+APP_VERSION = "0.2.1"
+
+
+def failure_details(exc, route):
+    """Describe the failing code, never exception text, local paths or input data."""
+    import fitz
+
+    code, message = {
+        "/api/render": ("PDF_RENDER_FAILED", "PDF를 만드는 중 오류가 발생했습니다. 입력 내역은 유지됩니다. 아래 오류 정보를 복사해 알려 주세요."),
+        "/api/parse": ("INPUT_PARSE_FAILED", "자료를 읽는 중 오류가 발생했습니다. 아래 오류 정보를 복사해 알려 주세요."),
+        "/api/recalculate": ("CALCULATION_FAILED", "금액을 계산하는 중 오류가 발생했습니다. 아래 오류 정보를 복사해 알려 주세요."),
+    }.get(route, ("REQUEST_FAILED", "요청을 처리하지 못했습니다. 아래 오류 정보를 복사해 알려 주세요."))
+    frames = []
+    for frame, lineno in traceback.walk_tb(exc.__traceback__):
+        filename = Path(frame.f_code.co_filename).name
+        frames.append(f"{filename}:{lineno} {frame.f_code.co_name}")
+    details = "\n".join([
+        f"TravelClaim v{APP_VERSION} / {code} / {secrets.token_hex(4).upper()}",
+        f"Python {sys.version.split()[0]} / {sys.platform} / PyMuPDF {fitz.VersionBind}",
+        f"Exception: {type(exc).__name__}",
+        *frames[-10:],
+    ])
+    # The launcher's local startup log receives only the same safe diagnostic.
+    # In particular, don't print traceback source lines, locals or exc.__str__().
+    try:
+        print(json.dumps({"diagnostics": details}, ensure_ascii=True), file=sys.stderr, flush=True)
+    except OSError:
+        pass
+    return {"error": message, "error_code": code, "diagnostics": details}
 
 
 def parse_capture(payload, filename):
@@ -46,7 +76,7 @@ class AppServer(HTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "TravelClaim/0.2.0"
+    server_version = "TravelClaim/" + APP_VERSION
 
     def log_message(self, *args):
         pass  # Names, image contents, and application records are never logged.
@@ -126,8 +156,8 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(200, result)
         except (ValueError, TypeError, KeyError) as exc:
             self.respond(400, {"error": str(exc)})
-        except Exception:
-            self.respond(500, {"error": "처리 중 오류가 발생했습니다. 다른 캡처로 다시 시도해 주세요."})
+        except Exception as exc:
+            self.respond(500, failure_details(exc, self.path))
 
 
 def main():

@@ -171,6 +171,71 @@ def hidden_header_capture():
     return pix
 
 
+def controlled_capture(button_height=20, *, faint_clipped_border=False):
+    """Source-sized UI controls omitted from the earlier text-only fixtures.
+
+    Repeated button borders are deliberately independent of the table grid.
+    All content is generated from the pseudonym fixture, not uploaded records.
+    """
+    doc = fitz.open()
+    page = doc.new_page(width=1244, height=381)
+    page.insert_image(page.rect, stream=synthetic_realistic_capture())
+    font = Path(__file__).resolve().parents[1] / "app" / "fonts" / "NotoSansCJKkr-Regular.otf"
+    if not font.is_file():
+        font = Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc")
+    page.insert_font(fontname="ko", fontfile=str(font))
+    page.draw_rect(fitz.Rect(17, 55, 28, 66), color=(0.66, 0.68, 0.72), width=0.65)
+    page.insert_text((1238, 53), "여비", fontname="ko", fontsize=10)
+    times = [("10:57", "15:06"), ("10:10", "14:12"), ("11:03", "15:00"),
+             ("09:49", "14:15"), ("11:17", "15:20"), ("10:44", "15:38"),
+             ("10:19", "15:30"), ("10:46", "15:24"), ("09:23", "13:50"),
+             ("09:21", "10:30")]
+    for index, (start, end) in enumerate(times):
+        top = 89 + index * 28
+        page.draw_rect(fitz.Rect(444, top + 1, 603, top + 27), color=None, fill=(1, 1, 1))
+        page.draw_line((524, top), (524, top + 28), color=(0.86, 0.87, 0.89), width=0.6)
+        for left, label, time in [(449, "시작", start), (529, "종료", end)]:
+            page.draw_rect(fitz.Rect(left, top + 4, left + 28, top + 4 + button_height),
+                           color=(0.66, 0.68, 0.72), width=0.65)
+            page.insert_text((left + 2, top + 18), label, fontname="ko", fontsize=11)
+            page.insert_text((left + 39, top + 18), time, fontname="ko", fontsize=11)
+        page.draw_rect(fitz.Rect(17, top + 8, 28, top + 19), color=(0.66, 0.68, 0.72), width=0.65)
+        page.insert_text((1238, top + 18), "미", fontname="ko", fontsize=11)
+    if faint_clipped_border:
+        page.draw_line((1243, 33), (1243, 369), color=(0.97, 0.97, 0.97), width=0.6)
+    return page.get_pixmap(alpha=False)
+
+
+class ControlGridTests(unittest.TestCase):
+    def test_repeated_button_edges_are_not_column_boundaries(self):
+        for height in (17, 20, 22):
+            with self.subTest(button_height=height):
+                xs, ys = ocr._grid(controlled_capture(height))
+                self.assertEqual(len(xs), 15)
+                self.assertEqual(len(ys), 12)
+                self.assertAlmostEqual(ys[0], 33, delta=1)
+                self.assertAlmostEqual(ys[1], 89, delta=1)
+                for edge in (449, 477, 529, 557):
+                    self.assertFalse(any(abs(x - edge) < 2 for x in xs))
+
+    def test_faint_clipped_column_does_not_remove_header_or_first_trip(self):
+        _, ys = ocr._grid(controlled_capture(faint_clipped_border=True))
+        self.assertEqual(len(ys), 12)
+        self.assertAlmostEqual(ys[0], 33, delta=1)
+        self.assertAlmostEqual(ys[1], 89, delta=1)
+
+    def test_compressed_and_downscaled_controls_keep_ten_body_rows(self):
+        source = controlled_capture()
+        variants = [fitz.Pixmap(source.tobytes("jpeg", jpg_quality=78)),
+                    fitz.Pixmap(source, round(source.width * 0.85), round(source.height * 0.85))]
+        for pix in variants:
+            with self.subTest(size=(pix.width, pix.height)):
+                xs, ys = ocr._grid(pix)
+                self.assertEqual(len(xs), 15)
+                self.assertEqual(len(ys), 12)
+                self.assertAlmostEqual(ys[1] / pix.height, 89 / 381, delta=0.005)
+
+
 class HeaderRecoveryRealOcrTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -184,6 +249,30 @@ class HeaderRecoveryRealOcrTests(unittest.TestCase):
         self.assertEqual((result["trips"][0]["start_time"], result["trips"][0]["end_time"]), ("10:57", "15:06"))
         self.assertTrue(any("열 배치" in note for note in result["warnings"]))
         self.assertTrue(any("열 배치" in note for note in result["trips"][0]["ocr_warnings"]))
+
+    def test_repeated_controls_and_clipped_financial_column_reach_review(self):
+        result = ocr.parse_image(controlled_capture().tobytes("png"), "controls-pseudonyms.png")
+        trips = result["trips"]
+        self.assertEqual(len(trips), 10)
+        self.assertEqual({t["name"] for t in trips}, {"홍길동"})
+        self.assertEqual((trips[0]["start_time"], trips[0]["end_time"]), ("10:57", "15:06"))
+        self.assertEqual((trips[-1]["start_time"], trips[-1]["end_time"]), ("09:21", "10:30"))
+        self.assertEqual(trips[0]["requested_start_time"], "09:30")
+        self.assertEqual(trips[-1]["approval_status"], "미신청")
+        self.assertEqual(trips[6]["vehicle"], "used")
+
+    def test_compressed_and_small_controls_retain_first_and_last_trip(self):
+        source = controlled_capture()
+        variants = [source.tobytes("jpeg", jpg_quality=78),
+                    fitz.Pixmap(source, round(source.width * 0.85), round(source.height * 0.85)).tobytes("png")]
+        for data in variants:
+            result = ocr.parse_image(data, "controls-pseudonyms.png")
+            self.assertEqual(len(result["trips"]), 10)
+            first, last = result["trips"][0], result["trips"][-1]
+            self.assertEqual(first["start_date"], "2026-10-22")
+            self.assertEqual(last["start_date"], "2026-10-01")
+            self.assertIn(first["start_time"], ("10:57", ""))
+            self.assertNotEqual(first["start_time"], first["requested_start_time"])
 
     def test_jpeg_compression_does_not_require_perfect_header_labels(self):
         result = ocr.parse_image(hidden_header_capture().tobytes("jpeg", jpg_quality=78), "compressed.jpg")

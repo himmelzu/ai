@@ -1,9 +1,12 @@
 import base64
+from contextlib import redirect_stderr
+import io
 import json
 from pathlib import Path
 import sys
 import threading
 import unittest
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -50,6 +53,35 @@ class ServerTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as exc:
             self.request("/api/parse", {"filename": "bad.png", "data": "%%%"})
         self.assertEqual(exc.exception.code, 400)
+
+    def test_unexpected_render_error_is_diagnosable_without_private_data(self):
+        private = "PRIVATE_EMPLOYEE_ABC C:/Users/private-user/claim.pdf session-secret"
+        log = io.StringIO()
+        with redirect_stderr(log), patch("backend.render_pdf", side_effect=RuntimeError(private)):
+            with self.assertRaises(HTTPError) as error:
+                self.request("/api/render", {"trips": [trip()], "source_name": private})
+            self.assertEqual(error.exception.code, 500)
+            result = json.load(error.exception)
+        self.assertEqual(result["error_code"], "PDF_RENDER_FAILED")
+        self.assertIn("RuntimeError", result["diagnostics"])
+        self.assertIn("backend.py:", result["diagnostics"])
+        self.assertNotIn("다른 캡처", result["error"])
+        for output in (json.dumps(result), log.getvalue()):
+            self.assertNotIn("PRIVATE_EMPLOYEE", output)
+            self.assertNotIn("private-user", output)
+            self.assertNotIn("session-secret", output)
+            self.assertNotIn(self.server.session_token, output)
+        # A failed request must leave the running application usable for retry.
+        retry = self.request("/api/render", {"trips": [trip()]})
+        self.assertTrue(base64.b64decode(retry["data"]).startswith(b"%PDF-"))
+
+    def test_unexpected_input_error_has_input_stage_code(self):
+        with redirect_stderr(io.StringIO()), patch("backend.parse_capture", side_effect=OSError("private path")):
+            with self.assertRaises(HTTPError) as error:
+                self.request("/api/parse", {"filename": "capture.png", "data": base64.b64encode(b"fixture").decode()})
+            result = json.load(error.exception)
+        self.assertEqual(result["error_code"], "INPUT_PARSE_FAILED")
+        self.assertNotIn("private path", result["diagnostics"])
 
 
 if __name__ == "__main__":

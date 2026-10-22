@@ -15,8 +15,8 @@ import os
 from pathlib import Path
 import re
 import shutil
+import statistics
 import subprocess
-import tempfile
 import unicodedata
 from typing import NamedTuple
 
@@ -65,15 +65,36 @@ def _grid(pix: fitz.Pixmap) -> tuple[list[float], list[float]]:
     # pale grid rules just above 245; white page backgrounds remain 255.
     for threshold in (190, 225, 245, 250, 253):
         dark = raw.translate(bytes(1 if i < threshold else 0 for i in range(256)))
-        horizontal = [
-            y for y in range(height)
-            if dark[y * width:(y + 1) * width].count(1) >= width * 0.68
-        ]
-        # Filled header backgrounds must not be interpreted as a row boundary.
-        y_groups = [g for g in _groups(horizontal) if len(g) <= max(4, height // 150)]
+        coverage = [dark[y * width:(y + 1) * width].count(1) for y in range(height)]
+        horizontal = [y for y, score in enumerate(coverage) if score >= width * 0.68]
+        all_groups = _groups(horizontal)
+        y_groups = [g for g in all_groups if len(g) <= max(4, height // 150)]
         if len(y_groups) < 3:
             continue
-        ys = [sum(g) / len(g) for g in y_groups]
+        centers = [sum(g) / len(g) for g in y_groups]
+        row_gap = statistics.median(b - a for a, b in zip(centers, centers[1:]))
+        # JPEG ringing may add another near-full-width stripe a few pixels
+        # beside a real rule. Merge these halos and keep the strongest rule,
+        # rather than treating them as extra trip rows.
+        merged: list[list[int]] = []
+        for group in y_groups:
+            if merged and group[0] - merged[-1][-1] <= max(4, row_gap * 0.25):
+                merged[-1].extend(group)
+            else:
+                merged.append(list(group))
+        ys = []
+        for group in merged:
+            maximum = max(coverage[y] for y in group)
+            strongest = [y for y in group if coverage[y] == maximum]
+            ys.append(sum(strongest) / len(strongest))
+        # A tinted two-tier header becomes one thick band at lighter
+        # thresholds. Its top/bottom edges remain table boundaries. Retaining
+        # those edges lets pale or downscaled body rules use that threshold
+        # without silently discarding the header and the first trip.
+        for group in all_groups:
+            if max(4, height // 150) < len(group) <= row_gap * 3:
+                ys.extend((float(group[0]), float(group[-1])))
+        ys = sorted(set(ys))
         top, bottom = int(ys[0]), int(ys[-1])
         step = max(1, (bottom - top) // 700)
         scores = [0] * width
@@ -86,8 +107,34 @@ def _grid(pix: fitz.Pixmap) -> tuple[list[float], list[float]]:
             g for g in _groups([x for x, score in enumerate(scores) if score >= samples * 0.72])
             if len(g) <= max(5, width // 150)
         ]
-        xs = [sum(g) / len(g) for g in x_groups]
-        if len(xs) > len(best[0]):
+        # A screenshot contains repeated button/checkbox edges as well as the
+        # table rules. A button on every row can exceed 72% total coverage but
+        # its edge stops in every row's padding. Real column rules continue
+        # across row boundaries, including the actual-time subcolumn divider
+        # that starts below the first header tier.
+        required_run = min(samples * 0.5, statistics.median(b - a for a, b in zip(ys, ys[1:])) * 2 / step)
+        filled_rows = {y for group in all_groups if len(group) > max(4, height // 150) for y in group}
+        unfilled_samples = sum(y not in filled_rows for y in range(top, bottom + 1, step))
+        required_run = min(required_run, max(1, unfilled_samples * 0.85))
+        column_rules = []
+        for group in x_groups:
+            longest = current = 0
+            for y in range(top, bottom + 1, step):
+                # A filled header supports every x; it cannot prove that a
+                # repeated control edge continues through the table body.
+                if y not in filled_rows and any(dark[y * width + x] for x in group):
+                    current += 1
+                    longest = max(longest, current)
+                else:
+                    current = 0
+            if longest >= required_run:
+                column_rules.append(group)
+        xs = [sum(g) / len(g) for g in column_rules]
+        # At a lighter threshold the tinted header can merge with its rules
+        # and disappear as a thick filled band. Once there are enough columns
+        # for a supported form, preserve the most row boundaries first. An
+        # extra faint, clipped column must not outweigh losing the first trip.
+        if (len(xs) >= 13, len(ys), len(xs)) > (len(best[0]) >= 13, len(best[1]), len(best[0])):
             best = xs, ys
     return best
 
@@ -128,22 +175,28 @@ def _read_tsv(text: str, scale: float) -> list[Word]:
 def _run_ocr(pix: fitz.Pixmap, scale: float, *, numeric: bool = False, psm: int = 6, language: str = "kor+eng") -> list[Word]:
     enlarged = fitz.Pixmap(pix, round(pix.width * scale), round(pix.height * scale))
     executable, env = _ocr_paths()
-    command = [executable, "", "stdout", "-l", "eng" if numeric else language, "--psm", str(psm), "-c", "tessedit_create_tsv=1"]
+    working_directory = None
+    if os.name == "nt" and env.get("TESSDATA_PREFIX"):
+        # Windows Tesseract converts the environment path through the system
+        # code page. A Korean AppData path can become "??". CreateProcessW
+        # accepts a Unicode working directory, so load the models relative to it.
+        working_directory = env["TESSDATA_PREFIX"]
+        env = env.copy()
+        env["TESSDATA_PREFIX"] = "."
+    # Leptonica's Windows file reader cannot reliably open a PNG below a Korean
+    # user/TEMP path. Feed the image bytes through stdin, without a temp file.
+    command = [executable, "stdin", "stdout", "-l", "eng" if numeric else language, "--psm", str(psm), "-c", "tessedit_create_tsv=1"]
     if numeric:
         command += ["-c", "tessedit_char_whitelist=0123456789:"]
-    with tempfile.TemporaryDirectory(prefix="travel-ocr-") as tmp:
-        source = Path(tmp) / "capture.png"
-        source.write_bytes(enlarged.tobytes("png"))
-        command[1] = str(source)
-        try:
-            result = subprocess.run(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
-                timeout=90, check=False, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise ValueError("문자 인식 시간이 초과되었습니다. 표 부분만 잘라서 다시 넣어 주세요.") from exc
-        except OSError as exc:
-            raise ValueError("OCR 프로그램을 실행하지 못했습니다. 배포 파일의 OCR 구성요소를 확인해 주세요.") from exc
+    try:
+        result = subprocess.run(
+            command, input=enlarged.tobytes("png"), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, cwd=working_directory,
+            timeout=90, check=False, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError("문자 인식 시간이 초과되었습니다. 표 부분만 잘라서 다시 넣어 주세요.") from exc
+    except OSError as exc:
+        raise ValueError("OCR 프로그램을 실행하지 못했습니다. 배포 파일의 OCR 구성요소를 확인해 주세요.") from exc
     if result.returncode:
         error = result.stderr.decode("utf-8", errors="replace")
         if "traineddata" in error or "Failed loading language" in error:

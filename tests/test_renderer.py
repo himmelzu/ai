@@ -2,6 +2,7 @@ import copy
 from pathlib import Path
 import sys
 import unittest
+from unittest import mock
 import unicodedata
 import re
 
@@ -63,6 +64,64 @@ class RateTests(unittest.TestCase):
 
 
 class PdfTests(unittest.TestCase):
+    def test_unwritable_font_subset_temp_directory_still_saves_complete_pdf(self):
+        records = recalculate([trip()])["trips"]
+        with mock.patch("tempfile.TemporaryDirectory", side_effect=PermissionError("fixture-only denial")):
+            payload, info = render_pdf(records, rates_confirmed=True, data_confirmed=True)
+        self.assertFalse(info["is_draft"])
+        self.assertEqual(info["count"], 1)
+        self.assertTrue(any("글꼴 용량" in warning for warning in info["warnings"]))
+        with fitz.open(stream=payload, filetype="pdf") as doc:
+            text = unicodedata.normalize("NFKC", doc[0].get_text())
+            self.assertIn("홍길동", text)
+            self.assertIn("20,000", text)
+            # The original font remains embedded, making the fallback portable.
+            self.assertGreater(len(doc.extract_font(doc[0].get_fonts()[0][0])[3]), 1000000)
+
+    def test_partial_font_subset_failure_cannot_damage_original_pages(self):
+        records = recalculate([trip(name=f"시험자{i}") for i in range(11)])["trips"]
+
+        def damaged_subset(document, **kwargs):
+            document.delete_page(0)
+            raise RuntimeError("fixture-only partial optimization failure")
+
+        with mock.patch.object(fitz.Document, "subset_fonts", damaged_subset):
+            payload, info = render_pdf(records)
+        self.assertTrue(info["is_draft"])
+        self.assertEqual(info["count"], 11)
+        with fitz.open(stream=payload, filetype="pdf") as doc:
+            self.assertEqual(len(doc), 2)
+            text = re.sub(r"\s+", "", "\n".join(page.get_text() for page in doc))
+            for i in range(11):
+                self.assertIn(f"시험자{i}", text)
+            self.assertIn("220,000", text)
+
+    def test_optimized_pdf_serialization_failure_preserves_original_statement(self):
+        records = recalculate([trip()])["trips"]
+        original_tobytes = fitz.Document.tobytes
+        serialized_documents = []
+
+        def fail_optimized_serialization(document, *args, **kwargs):
+            serialized_documents.append(document)
+            if len(serialized_documents) == 2:
+                raise RuntimeError("fixture-only optimized serialization failure")
+            return original_tobytes(document, *args, **kwargs)
+
+        with mock.patch.object(fitz.Document, "subset_fonts", return_value=0) as subset:
+            with mock.patch.object(fitz.Document, "tobytes", fail_optimized_serialization):
+                payload, info = render_pdf(records, rates_confirmed=True, data_confirmed=True)
+        subset.assert_called_once_with(fallback=True)
+        self.assertEqual(len(serialized_documents), 2)
+        self.assertIsNot(serialized_documents[0], serialized_documents[1])
+        self.assertFalse(info["is_draft"])
+        self.assertEqual(info["count"], 1)
+        self.assertTrue(any("글꼴 용량" in warning for warning in info["warnings"]))
+        with fitz.open(stream=payload, filetype="pdf") as doc:
+            text = unicodedata.normalize("NFKC", doc[0].get_text())
+            self.assertIn("홍길동", text)
+            self.assertIn("20,000", text)
+            self.assertNotIn("검토용", text)
+
     def test_confirmed_pdf_contains_expected_content_and_sum(self):
         records = recalculate([trip(), trip(start_date="2026-10-21", end_date="2026-10-21", vehicle="used")])["trips"]
         payload, info = render_pdf(records, rates_confirmed=True, data_confirmed=True)

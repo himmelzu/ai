@@ -4,7 +4,7 @@
 
 ## Windows 프로그램 다운로드
 
-**[여비청구서 변환기 v0.2.0 ZIP 다운로드](https://github.com/himmelzu/ai/raw/refs/heads/main/downloads/TravelClaim-Windows-v0.2.0.zip)** · 약 100MB · Windows 10/11 64비트
+**[여비청구서 변환기 v0.2.1 ZIP 다운로드](https://github.com/himmelzu/ai/raw/refs/heads/main/downloads/TravelClaim-Windows-v0.2.1.zip)** · 약 100MB · Windows 10/11 64비트
 
 1. ZIP을 내려받아 압축을 풉니다.
 2. `여비청구서변환기.exe`를 실행합니다. Python 설치는 필요하지 않습니다.
@@ -14,7 +14,7 @@
 
 [상세 사용설명서](docs/사용설명서.md) · [예시 출력 PDF](downloads/example-statement.pdf) · [가명 테스트 캡처](downloads/example-capture.png) · [공모전 제안서 초안 PDF](downloads/contest-proposal.pdf)
 
-v0.2.0은 캡처 열 제목 인식·실패 시 원본 보존을 개선하고 월별집계 PDF 보조 입력을 추가한 초기 실행판입니다. 실제 Windows PC에서의 기본 브라우저 연동은 별도 확인이 필요합니다. OCR 내용과 소속 기관의 지급기준을 확인한 뒤 사용하세요. 자료는 외부 AI 서비스로 전송하지 않습니다. 예시는 가명 자료입니다.
+v0.2.1은 반복되는 시작·종료 버튼을 표의 열로 잘못 세는 문제와 한글 Windows 임시폴더에서의 OCR 실패를 수정했습니다. PDF 글꼴 용량 최적화에 실패해도 원본 글꼴로 저장하며, 그 밖의 오류에는 복사 가능한 진단 정보를 제공합니다. 월별집계 PDF도 보조 입력으로 지원하는 초기 실행판입니다. 실제 Windows PC에서의 기본 브라우저 연동은 별도 확인이 필요합니다. OCR 내용과 소속 기관의 지급기준을 확인한 뒤 사용하세요. 자료는 외부 AI 서비스로 전송하지 않습니다. 예시는 가명 자료입니다.
 
 ![프로그램 화면 — 가명 자료](downloads/app-screenshot.png)
 

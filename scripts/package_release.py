@@ -49,7 +49,7 @@ def licenses():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", default="0.2.0")
+    parser.add_argument("--version", default="0.2.1")
     args = parser.parse_args()
     if not all(char in "0123456789.-abcdefghijklmnopqrstuvwxyz" for char in args.version):
         parser.error("Use a simple release version")
@@ -93,6 +93,7 @@ def main():
         "관외·여러 날 출장은 자동 계산 범위 밖이므로 별도 검토가 필요합니다.\n\n"
         "DOCX와 TXT 제안서는 복사·수정용 초안입니다.\n"
         "개인 참가정보·동의·서명은 직접 작성하세요.\n"
+        "오류가 나면 화면의 오류 진단 정보에서 진단 정보 복사를 눌러 문의하세요.\n"
         "상세 사용법: 사용방법.txt / 소스·빌드 절차: source.zip\n"
         "예시 이미지와 예시 명세서는 가명 자료입니다.\n",
         encoding="utf-8-sig")
