@@ -12,12 +12,13 @@
   .preview-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:0 16px 12px}.preview-status{flex:1;min-width:180px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.preview-status.failed{color:var(--red)}.preview-file-name{overflow-wrap:anywhere}.preview-toolbar .secondary{font-size:11px;padding:6px 10px}
   .pdf-placeholder{margin:0 16px 16px;padding:26px 16px;border:1px dashed #ccdadd;border-radius:7px;background:#f7fafb;text-align:center;color:var(--muted);font-size:12px}.pdf-placeholder strong{display:block;font-size:15px;color:var(--ink);margin-bottom:5px}.preview-note{padding:0 16px 12px;font-size:11px;color:var(--muted)}
   .diagnostic-box{margin-top:9px;border:1px solid #e2cdd0;border-radius:7px;background:#fff}.diagnostic-box summary{cursor:pointer;padding:10px 14px;font-size:12px;color:var(--red);font-weight:700}.diagnostic-box p{padding:0 14px 9px;font-size:11px;color:var(--muted)}.diagnostic-box textarea{display:block;width:calc(100% - 28px);margin:0 14px;padding:10px;border:1px solid var(--line);border-radius:5px;background:#f7f9fa;color:var(--ink);font:11px/1.6 Consolas,monospace;resize:vertical;white-space:pre-wrap}.diagnostic-actions{display:flex;align-items:center;gap:10px;padding:10px 14px}.diagnostic-actions span{font-size:11px;color:var(--muted)}
+  .guide-panel{margin-top:16px;padding:18px}.guide-heading{display:flex;align-items:flex-start;gap:14px;justify-content:space-between}.guide-heading p{font-size:12px;color:var(--muted);margin-top:4px}.guide-source{font-size:11px;color:var(--muted);overflow-wrap:anywhere}.guide-steps{font-size:12px;color:var(--muted);margin:12px 0}.guide-scroller{overflow:auto;border:1px solid #bdcfce;border-radius:7px;background:#e9eeee;max-height:620px}.guide-board{position:relative;line-height:0}.guide-board img{display:block;width:100%;height:auto}.guide-board svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.guide-handle{cursor:ew-resize;touch-action:none}.guide-handle.horizontal{cursor:ns-resize}.guide-hit{stroke:transparent;stroke-width:12}.guide-rule{stroke:#087b72;stroke-width:1.8;pointer-events:none}.guide-handle:focus .guide-rule{stroke:#ad480a;stroke-width:3}.guide-label{font-family:"Malgun Gothic",sans-serif;fill:#07554e;font-size:11px;font-weight:700;pointer-events:none}.guide-controls{border:0;margin:13px 0 0;padding:0;min-width:0}.guide-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.guide-toolbar label{font-size:12px;font-weight:700}.guide-toolbar input{width:85px;margin-left:7px;padding:7px;border:1px solid #ccdadd;border-radius:5px}.guide-status{font-size:12px;color:var(--muted);margin-top:9px;overflow-wrap:anywhere}.guide-numbers{margin:12px 0;border-top:1px solid var(--line);padding-top:9px}.guide-numbers summary{font-size:12px;cursor:pointer;color:var(--muted)}.guide-number-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:9px;margin-top:10px}.guide-number-grid label{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px}.guide-number-grid input{width:77px;padding:6px;border:1px solid #ccdadd;border-radius:4px}.guide-confirm{display:flex;align-items:flex-start;gap:8px;font-size:12px;margin:14px 0 12px;cursor:pointer}.guide-confirm input{margin:4px 0 0;accent-color:var(--teal)}.guide-approval-note{margin-top:9px;color:var(--teal);font-size:12px}.guide-heading button{flex:none}@media(max-width:780px){.guide-panel{padding:13px}.guide-heading{gap:8px}.guide-heading h2{font-size:15px}.guide-number-grid{grid-template-columns:1fr 1fr}.guide-number-grid label{flex-wrap:wrap}.guide-confirm{font-size:12px}}
   </style>
 </head>
 <body>
   <header class="masthead"><div class="masthead-inner">
     <div class="brand-icon" aria-hidden="true"><svg width="23" height="25" viewBox="0 0 23 25" fill="none"><path d="M4 1.5h10L20 8v15H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 2v6h6M8 12h8M8 16h8M8 20h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-    <div><div class="brand">여비청구서 변환기</div><div class="brand-sub">TRAVEL CLAIM ASSISTANT · v0.2.1</div></div>
+    <div><div class="brand">여비청구서 변환기</div><div class="brand-sub">TRAVEL CLAIM ASSISTANT · v0.2.2</div></div>
     <div class="masthead-spacer"></div><span class="local-badge">내 PC에서 처리</span><button class="exit-btn" id="exitButton" type="button">종료</button>
   </div></header>
   <main>
@@ -30,7 +31,13 @@
       <button class="primary" id="selectButton" type="button">캡처 / PDF 선택</button><input id="fileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.pdf,image/png,image/jpeg,image/webp,image/bmp,application/pdf" hidden>
     </section>
     <div class="notice"><span class="notice-icon" aria-hidden="true">ⓘ</span><p>파일은 외부 서버로 전송하지 않고 이 컴퓨터에서 처리합니다. 인식 결과는 원본과 대조해 주세요. 신청시간과 실제 출장시간을 구분해 확인합니다.</p></div>
-    <details class="panel image-preview" id="imagePreview" hidden><summary>원본 자료 확인 <span class="preview-file-name" id="previewFileName"></span><span>개인정보가 포함될 수 있습니다.</span></summary><div class="preview-toolbar"><p class="preview-status" id="previewStatus"></p><button class="secondary" id="openImageButton" type="button">크게 보기</button><button class="secondary" id="previousSourceButton" type="button" hidden>이전 내역 원본 보기</button><button class="secondary" id="retryButton" type="button" hidden>이 캡처 다시 인식</button></div><p class="preview-note" id="previewNote" hidden></p><div class="pdf-placeholder" id="pdfPlaceholder" hidden><strong>PDF 원본</strong><span>인식 후 첫 페이지 미리보기를 표시합니다. 원본은 “PDF 원본 열기”로 확인할 수 있습니다.</span></div><img id="sourceImage" alt="불러온 출장 화면 원본 캡처" hidden></details>
+    <details class="panel image-preview" id="imagePreview" hidden><summary>원본 자료 확인 <span class="preview-file-name" id="previewFileName"></span><span>개인정보가 포함될 수 있습니다.</span></summary><div class="preview-toolbar"><p class="preview-status" id="previewStatus"></p><button class="secondary" id="openImageButton" type="button">크게 보기</button><button class="secondary" id="previousSourceButton" type="button" hidden>이전 내역 원본 보기</button><button class="secondary" id="guideButton" type="button" hidden>표 배치 직접 확인</button><button class="secondary" id="retryButton" type="button" hidden>이 캡처 다시 인식</button></div><p class="preview-note" id="previewNote" hidden></p><div class="pdf-placeholder" id="pdfPlaceholder" hidden><strong>PDF 원본</strong><span>인식 후 첫 페이지 미리보기를 표시합니다. 원본은 “PDF 원본 열기”로 확인할 수 있습니다.</span></div><img id="sourceImage" alt="불러온 출장 화면 원본 캡처" hidden></details>
+    <section class="panel guide-panel" id="guidePanel" aria-labelledby="guideTitle" hidden>
+      <div class="guide-heading"><div><h2 id="guideTitle">표 배치를 확인하고 계속하기</h2><p>근무지내출장처리 목록의 열 순서가 같은 캡처에 사용하세요.</p><div class="guide-source" id="guideName"></div></div><button class="secondary small" id="guideCloseButton" type="button">닫기</button></div>
+      <p class="guide-steps">① 위·아래 선을 제목을 제외한 첫 행과 마지막 행 끝에 맞추세요. ② 세로선을 같은 이름의 열 경계에 맞추세요. ③ 출장 행 수를 확인하세요. 선을 끌거나 아래 숫자를 바꿀 수 있습니다. 작은 화면에서는 원본을 좌우로 스크롤하세요.</p>
+      <div class="guide-scroller" id="guideScroller"><div class="guide-board" id="guideBoard"><img id="guideImage" alt="배치를 직접 확인할 원본 캡처"><svg id="guideSvg" aria-label="열 경계와 출장 행 영역 조정"></svg></div></div>
+      <fieldset class="guide-controls" id="guideControls"><div class="guide-toolbar"><label>출장 행 수<input id="guideRows" type="number" min="1" max="100" step="1" value="10"></label><button class="secondary small" id="guidePresetButton" type="button">근무지내 목록 예시 배치</button></div><p class="guide-status" id="guideStatus" role="status" aria-live="polite"></p><details class="guide-numbers"><summary>선 위치를 숫자로 조정 (%)</summary><div class="guide-number-grid" id="guideNumbers"></div></details><label class="guide-confirm"><input id="guideConfirmed" type="checkbox"><span>원본과 열 이름·본문 범위·행 수가 맞는 것을 확인했습니다. 인식 후 내용도 대조하겠습니다.</span></label><button class="primary" id="guideParseButton" type="button" disabled>확인한 배치로 인식</button></fieldset>
+    </section>
     <div id="message" class="message" role="status" aria-live="polite" hidden></div>
     <details class="diagnostic-box" id="diagnosticBox" hidden><summary>오류 진단 정보</summary><p>문제 문의 시 아래 정보를 복사해 전달할 수 있습니다. 원본 문서와 출장 내역은 이 정보에 포함하지 않습니다.</p><textarea id="diagnosticText" rows="5" readonly aria-label="오류 진단 정보"></textarea><div class="diagnostic-actions"><button class="secondary small" id="copyDiagnosticButton" type="button">진단 정보 복사</button><span id="copyDiagnosticStatus" role="status" aria-live="polite"></span></div></details>
     <section class="empty" id="emptyState"><strong id="emptyTitle">아직 불러온 출장 내역이 없습니다.</strong><p id="emptyText">이미지를 넣으면 출장 내역과 확인할 항목이 이곳에 표시됩니다.</p></section>
@@ -42,17 +49,17 @@
         <div class="editor-bottom"><span>일비 제안값은 실제 출장시간과 공용차량 여부를 기준으로 계산합니다. 금액은 담당자가 확인해 주세요.</span><span>빈 금액 = 미확인 · 0 = 0원</span></div>
       </section>
       <aside class="review-box" id="reviewBox" role="note" hidden><strong>저장 전 확인해 주세요</strong><ul id="reviewList"></ul></aside>
-      <section class="panel confirmations"><label><input id="ratesConfirmed" type="checkbox"><span>위 기준이 우리 기관 기준과 일치함을 확인했습니다.</span></label><label><input id="dataConfirmed" type="checkbox"><span>OCR 내용과 지급대상(결재상태)을 원본과 대조해 확인했습니다.</span></label><p>두 항목을 확인하고 필수 정보와 결재상태가 충족되면 최종 명세서로 저장합니다.</p></section>
+      <section class="panel confirmations"><label><input id="ratesConfirmed" type="checkbox"><span>위 기준이 우리 기관 기준과 일치함을 확인했습니다.</span></label><label><input id="dataConfirmed" type="checkbox"><span id="dataConfirmedLabel">OCR 내용과 지급대상(결재상태)을 원본과 대조해 확인했습니다.</span></label><p id="confirmationHelp">두 항목을 확인하고 필수 정보와 결재상태가 충족되면 최종 명세서로 저장합니다.</p><p class="guide-approval-note" id="approvalPolicyNote" hidden>시스템에서 결재완료된 내역만 내려받은 PDF로 처리합니다.</p></section>
       <section class="panel export-panel" aria-label="명세서 저장 설정"><div class="export-fields"><label class="export-field"><span class="field-label">대조 확인자 직급 · 선택</span><input id="officerTitle" type="text" placeholder="예: 지방행정주사" maxlength="80" autocomplete="off"></label><label class="export-field"><span class="field-label">대조 확인자 성명 · 선택</span><input id="officerName" type="text" placeholder="확인자 성명" maxlength="40" autocomplete="off"></label></div><button class="primary export-button" id="renderButton" type="button"><svg width="16" height="17" viewBox="0 0 16 17" fill="none" aria-hidden="true"><path d="M8 1v10m0 0L4 7m4 4 4-4M2 12v3h12v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="renderLabel">명세서 PDF 저장</span></button></section>
       <p class="export-note">기준·인식 결과 미확인, 필수 정보 누락 또는 결재 미완료가 있으면 검토용 초안으로 저장합니다. 서명·날인은 공란으로 둡니다.</p>
     </div>
-  </main><footer><span>여비청구서 변환기 v0.2.1 · 로컬 문서 도구</span><span>원본 이미지는 변경하지 않습니다.</span></footer>
+  </main><footer><span>여비청구서 변환기 v0.2.2 · 로컬 문서 도구</span><span>원본 이미지는 변경하지 않습니다.</span></footer>
   <script>
     'use strict';
     const SESSION_TOKEN = '__SESSION_TOKEN__';
-    const APP_VERSION = '0.2.1';
+    const APP_VERSION = '0.2.2';
     const $ = id => document.getElementById(id);
-    const state = {trips: [], warnings: [], sourceName: '', busy: false, completed: false, calculationDirty: false, previewUrl: null, previewFile: null, attemptFile: null, sourceFile: null, sourcePreviewData: null, sourcePreviewNote: ''};
+    const state = {trips: [], warnings: [], sourceName: '', busy: false, completed: false, calculationDirty: false, previewUrl: null, previewFile: null, attemptFile: null, sourceFile: null, sourcePreviewData: null, sourcePreviewNote: '', approvalPolicy: 'from_image', guide: null};
     const moneyFields = ['daily_allowance', 'meal', 'lodging', 'transport', 'other', 'claim_amount'];
     const rateIds = {rate_long:'rateLong', rate_short:'rateShort', vehicle_deduction:'vehicleDeduction', threshold_minutes:'thresholdMinutes', daily_cap:'dailyCap'};
     const defaultRates = {rate_long:20000, rate_short:10000, vehicle_deduction:10000, threshold_minutes:240, daily_cap:20000};
@@ -66,6 +73,117 @@
     const inputKind = file => isPdf(file) ? 'PDF' : '캡처';
     const included = trip => trip.include !== false;
     const approved = trip => String(trip.approval_status || '').replace(/\s/g, '') === '결재완료';
+
+    const guideColumns = ['순번','부서','직급','성명','사번','실제시각','신청기간','출장지','출장목적','등급','차량','결재'];
+    const guidePresetXs = [43,93,225,327,373,443,604,825,919,1076,1123,1171,1234].map(value => value / 1244);
+    function validGuide(guide) {
+      return guide && guide.xs.length === 13 && guide.xs.every((value, i) => Number.isFinite(value) && value >= 0 && value <= 1 && (!i || value - guide.xs[i - 1] >= 4 / guide.width)) && (guide.xs[12] - guide.xs[0]) * guide.width >= 350 && Number.isInteger(guide.rowCount) && guide.rowCount >= 1 && guide.rowCount <= 100 && Number.isFinite(guide.top) && Number.isFinite(guide.bottom) && guide.top >= 0 && guide.bottom <= 1 && (guide.bottom - guide.top) * guide.height / guide.rowCount >= 10 && (guide.bottom - guide.top) * guide.height / guide.rowCount <= 300;
+    }
+    function updateGuideReady() {
+      const invalidNumber = Array.from($('guideNumbers').querySelectorAll('input')).some(input => input.value === '' || input.getAttribute('aria-invalid') === 'true');
+      $('guideParseButton').disabled = state.busy || !$('guideConfirmed').checked || !validGuide(state.guide) || invalidNumber;
+    }
+    function resetGuideConfirmation() {
+      $('guideConfirmed').checked = false; updateGuideReady();
+    }
+    function closeGuide() {
+      if (state.guide?.url) URL.revokeObjectURL(state.guide.url);
+      state.guide = null; $('guidePanel').hidden = true; $('guideImage').removeAttribute('src'); $('guideSvg').replaceChildren(); $('guideNumbers').replaceChildren(); resetGuideConfirmation();
+    }
+    function guidePayload() {
+      const guide = state.guide;
+      return {schema:'local-trip-ui-v1', xs:[...guide.xs], body_top:guide.top, body_bottom:guide.bottom, row_count:guide.rowCount, image_width:guide.width, image_height:guide.height, confirmed:true};
+    }
+    function guideNumberFields() {
+      const guide = state.guide; const host = $('guideNumbers'); host.replaceChildren();
+      for (const [kind, index, name] of [['top', 0, '본문 위쪽'], ['bottom', 0, '본문 아래쪽'], ...guide.xs.map((_, i) => ['column', i, i < 12 ? guideColumns[i] + ' 왼쪽' : '결재 오른쪽'])]) {
+        const label = document.createElement('label'); const title = document.createElement('span'); title.textContent = name; label.appendChild(title);
+        const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.max = '100'; input.step = '0.01'; input.dataset.guideKind = kind; input.dataset.guideIndex = String(index); input.setAttribute('aria-label', name + ' 위치 백분율');
+        input.addEventListener('input', () => resetGuideConfirmation());
+        input.addEventListener('change', () => {
+          const value = input.value === '' ? NaN : Number(input.value) / 100;
+          if (!Number.isFinite(value) || value < 0 || value > 1) {input.setAttribute('aria-invalid', 'true'); $('guideStatus').textContent = '선 위치는 0~100 사이의 숫자로 입력해 주세요.'; updateGuideReady(); return;}
+          if (kind === 'column') guide.xs[index] = value; else guide[kind] = value;
+          renderGuide(); $('guideStatus').textContent = validGuide(guide) ? '배치가 원본과 맞는지 확인한 뒤 아래 확인란을 표시해 주세요.' : '선이 겹치거나 표·행 크기가 맞지 않습니다. 세로선 순서와 본문 범위·행 수를 확인해 주세요.';
+        });
+        label.appendChild(input); host.appendChild(label);
+      }
+    }
+    function svgGuideNode(tag, attrs = {}, text = null) {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+      if (text !== null) node.textContent = text;
+      return node;
+    }
+    function moveGuideLine(kind, index, value) {
+      const guide = state.guide; if (!guide || state.busy) return;
+      if (kind === 'column') {
+        const gap = 4 / guide.width;
+        const lower = index ? Math.max(guide.xs[index - 1] + gap,index === 12 ? guide.xs[0] + 350 / guide.width : 0) : 0;
+        const upper = index < 12 ? Math.min(guide.xs[index + 1] - gap,index === 0 ? guide.xs[12] - 350 / guide.width : 1) : 1;
+        guide.xs[index] = Math.max(lower,Math.min(upper,value));
+      } else {
+        const gap = 10 * guide.rowCount / guide.height; const maximum = 300 * guide.rowCount / guide.height;
+        guide[kind] = kind === 'top' ? Math.max(0,guide.bottom-maximum,Math.min(guide.bottom-gap,value)) : Math.min(1,guide.top+maximum,Math.max(guide.top+gap,value));
+      }
+      resetGuideConfirmation(); renderGuide(); $('guideStatus').textContent = '선 위치가 변경되었습니다. 원본과 맞는지 확인한 뒤 아래 확인란을 다시 표시해 주세요.';
+    }
+    function renderGuide() {
+      const guide = state.guide; if (!guide) return;
+      const svg = $('guideSvg'); svg.replaceChildren(); svg.setAttribute('viewBox', '0 0 ' + guide.width + ' ' + guide.height);
+      const left = guide.xs[0] * guide.width; const right = guide.xs[12] * guide.width; const top = guide.top * guide.height; const bottom = guide.bottom * guide.height;
+      svg.append(svgGuideNode('rect', {x:0,y:0,width:guide.width,height:Math.max(0,top),fill:'#153b3e',opacity:.18}), svgGuideNode('rect', {x:0,y:bottom,width:guide.width,height:Math.max(0,guide.height-bottom),fill:'#153b3e',opacity:.18}));
+      for (let i = 0; i < 12; i++) {
+        const x = guide.xs[i] * guide.width; const width = (guide.xs[i+1] - guide.xs[i]) * guide.width;
+        if (i % 2 === 0) svg.appendChild(svgGuideNode('rect', {x,y:top,width:Math.max(0,width),height:Math.max(0,bottom-top),fill:'#31c8b4',opacity:.09}));
+        svg.appendChild(svgGuideNode('rect', {x:x+1,y:Math.max(0,top-21),width:Math.max(0,width-2),height:19,fill:'#e6fff9',opacity:.96}));
+        svg.appendChild(svgGuideNode('text', {x:x+width/2,y:Math.max(13,top-7),'text-anchor':'middle',class:'guide-label'}, guideColumns[i]));
+      }
+      const visibleRows = Number.isInteger(guide.rowCount) && guide.rowCount >= 1 && guide.rowCount <= 100 ? guide.rowCount : 1;
+      for (let i = 1; i < visibleRows; i++) {const y = top+(bottom-top)*i/visibleRows; svg.appendChild(svgGuideNode('line', {x1:left,y1:y,x2:right,y2:y,stroke:'#087b72','stroke-width':.7,'stroke-dasharray':'5 4','pointer-events':'none'}));}
+      function handle(kind, index, attrs, title) {
+        const group = svgGuideNode('g', {class:'guide-handle' + (kind === 'column' ? '' : ' horizontal'),tabindex:0,role:'slider','aria-label':title,'aria-valuemin':0,'aria-valuemax':100,'aria-valuenow':((kind === 'column' ? guide.xs[index] : guide[kind])*100).toFixed(2)});
+        group.append(svgGuideNode('line', {...attrs,class:'guide-hit'}), svgGuideNode('line', {...attrs,class:'guide-rule'}));
+        group.addEventListener('pointerdown', event => {
+          if (state.busy) return; event.preventDefault();
+          const pointerId = event.pointerId; const dragKind = kind; const dragIndex = index;
+          const move = next => {if (next.pointerId !== pointerId) return; const rect = svg.getBoundingClientRect(); moveGuideLine(dragKind,dragIndex,dragKind === 'column' ? (next.clientX-rect.left)/rect.width : (next.clientY-rect.top)/rect.height);};
+          const end = next => {if (next.pointerId !== pointerId) return; window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',end); window.removeEventListener('pointercancel',end);};
+          window.addEventListener('pointermove',move); window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
+        });
+        group.addEventListener('keydown', event => {const direction = ['ArrowLeft','ArrowUp'].includes(event.key) ? -1 : ['ArrowRight','ArrowDown'].includes(event.key) ? 1 : 0; if (!direction) return; event.preventDefault(); const value = kind === 'column' ? guide.xs[index] : guide[kind]; moveGuideLine(kind,index,value+direction*(event.shiftKey ? 10 : 1)/(kind === 'column' ? guide.width : guide.height)); const handles = svg.querySelectorAll('[role="slider"]'); handles[kind === 'column' ? index : kind === 'top' ? 13 : 14]?.focus();});
+        svg.appendChild(group);
+      }
+      for (let i = 0; i < 13; i++) {const x = guide.xs[i] * guide.width; handle('column',i,{x1:x,y1:Math.max(0,top-24),x2:x,y2:bottom},i < 12 ? guideColumns[i]+' 왼쪽 경계' : '결재 오른쪽 경계');}
+      handle('top',0,{x1:left,y1:top,x2:right,y2:top},'본문 첫 행 위쪽 경계'); handle('bottom',0,{x1:left,y1:bottom,x2:right,y2:bottom},'본문 마지막 행 아래쪽 경계');
+      $('guideRows').value = String(guide.rowCount);
+      for (const input of $('guideNumbers').querySelectorAll('input')) {const value = input.dataset.guideKind === 'column' ? guide.xs[Number(input.dataset.guideIndex)] : guide[input.dataset.guideKind]; input.value = (value*100).toFixed(2); input.removeAttribute('aria-invalid');}
+      updateGuideReady();
+    }
+    function presetGuide() {
+      if (!state.guide) return;
+      Object.assign(state.guide,{xs:[...guidePresetXs],top:89/381,bottom:369/381,rowCount:10}); resetGuideConfirmation(); renderGuide();
+      $('guideStatus').textContent = '근무지내 목록의 예시 배치입니다. 자동 확정된 배치가 아니므로 원본과 선·행 수를 맞춰 주세요.';
+    }
+    async function openGuide() {
+      const file = state.attemptFile; if (!file || isPdf(file) || state.busy) return;
+      if (state.guide?.file === file) {$('guidePanel').hidden = false; $('imagePreview').open = false; $('guidePanel').scrollIntoView({block:'start',behavior:'smooth'}); return;}
+      closeGuide(); setBusy(true); const url = URL.createObjectURL(file);
+      try {
+        const image = $('guideImage'); const loaded = new Promise((resolve,reject) => {image.onload = resolve; image.onerror = () => reject(new Error('캡처 이미지를 표시하지 못했습니다. 다른 이미지 파일을 선택해 주세요.'));}); image.src = url; await loaded;
+        state.guide = {file,url,width:image.naturalWidth,height:image.naturalHeight,xs:[...guidePresetXs],top:89/381,bottom:369/381,rowCount:10};
+        $('guideBoard').style.width = Math.max(960,image.naturalWidth)+'px'; $('guideName').textContent = file.name || '캡처'; $('guidePanel').hidden = false; $('imagePreview').open = false; guideNumberFields(); presetGuide(); $('guidePanel').scrollIntoView({block:'start',behavior:'smooth'});
+        setBusy(true); $('guideStatus').textContent = '원본의 표선 후보를 확인하고 있습니다…';
+        try {
+          const result = await api('/api/layout',{filename:file.name || '캡처.png',data:await fileAsBase64(file)}); const hint = result.layout;
+          const candidate = hint && {xs:hint.xs,top:hint.body_top,bottom:hint.body_bottom,rowCount:hint.row_count,width:image.naturalWidth,height:image.naturalHeight};
+          if (Array.isArray(candidate?.xs) && validGuide(candidate) && hint.image_width === image.naturalWidth && hint.image_height === image.naturalHeight) {Object.assign(state.guide,candidate); renderGuide(); $('guideStatus').textContent = hint.hint_source === 'grid' ? '원본 표선에서 배치 후보를 표시했습니다. 원본과 선·행 수가 맞는지 직접 확인해 주세요.' : '예시 배치 후보를 표시했습니다. 원본과 선·행 수를 맞춰 주세요.';}
+          else {$('guideStatus').textContent = '자동 확정되지 않은 예시 배치입니다. 원본과 선·행 수를 맞춰 주세요.';}
+        } catch (_) {$('guideStatus').textContent = '표선 후보를 가져오지 못해 예시 배치를 표시했습니다. 원본과 선·행 수를 맞춰 주세요.';}
+        resetGuideConfirmation();
+      } catch (err) {URL.revokeObjectURL(url); closeGuide(); showError(err);}
+      finally {setBusy(false);}
+    }
 
     function showMessage(text, kind = 'loading') {
       $('diagnosticBox').hidden = true; $('diagnosticBox').open = false; $('diagnosticText').value = ''; $('copyDiagnosticStatus').textContent = '';
@@ -87,8 +205,8 @@
     }
     function setBusy(value) {
       state.busy = value;
-      for (const id of ['selectButton','exitButton','fileInput','retryButton','previousSourceButton','openImageButton','copyDiagnosticButton','officerTitle','officerName','ratesConfirmed','dataConfirmed',...Object.values(rateIds)]) $(id).disabled = value;
-      $('renderButton').disabled = value || !state.trips.some(included); $('recalculateButton').disabled = value || !state.trips.some(included); $('tripRows').inert = value;
+      for (const id of ['selectButton','exitButton','fileInput','retryButton','previousSourceButton','openImageButton','copyDiagnosticButton','guideButton','guideCloseButton','guidePresetButton','officerTitle','officerName','ratesConfirmed','dataConfirmed',...Object.values(rateIds)]) $(id).disabled = value;
+      $('renderButton').disabled = value || !state.trips.some(included); $('recalculateButton').disabled = value || !state.trips.some(included); $('tripRows').inert = value; $('guideControls').disabled = value; $('guideSvg').inert = value; updateGuideReady();
     }
     async function api(path, data) {
       let response;
@@ -121,22 +239,28 @@
       $('previewNote').textContent = previewNote || ''; $('previewNote').hidden = !previewNote;
       $('previewFileName').textContent = file.name || '캡처'; $('imagePreview').hidden = false;
     }
-    async function loadFile(file, retry = false) {
+    async function loadFile(file, retry = false, layout = null) {
       if (state.busy || !file) return;
       if (!isPdf(file) && !/\.(png|jpe?g|webp|bmp)$/i.test(file.name) && !/^image\/(png|jpeg|webp|bmp|x-ms-bmp)$/i.test(file.type)) {showMessage('PNG, JPG, WebP, BMP 캡처 이미지 또는 PDF 파일을 선택해 주세요.', 'error'); return;}
       if (file.size > 20 * 1024 * 1024) {showMessage('파일 크기가 20MB를 넘습니다. 필요한 출장 내역만 포함한 파일을 선택해 주세요.', 'error'); return;}
       if (!file.size) {showMessage('비어 있는 파일입니다. 다른 파일을 선택해 주세요.', 'error'); return;}
       if (state.trips.length && !retry && !window.confirm('새 자료 인식이 성공하면 현재 화면에서 수정한 내역이 교체됩니다. 계속할까요?')) return;
+      if (state.guide && state.guide.file !== file) closeGuide();
       state.attemptFile = file; showPreview(file); if (isPdf(file)) $('imagePreview').open = true; const kind = inputKind(file);
       $('uploadTitle').textContent = file.name || '캡처'; $('selectButton').textContent = '다른 캡처 / PDF 선택';
       $('uploadSubtitle').textContent = '인식 중 · 새 자료 인식이 성공하면 출장 내역이 표시됩니다.';
       $('previewStatus').classList.remove('failed'); $('previewStatus').textContent = '이 ' + kind + '에서 출장 내역을 읽고 있습니다.';
-      $('retryButton').hidden = true; $('retryButton').textContent = '이 ' + kind + ' 다시 인식'; $('previousSourceButton').hidden = true;
+      $('retryButton').hidden = true; $('retryButton').textContent = '이 ' + kind + ' 다시 인식'; $('previousSourceButton').hidden = true; $('guideButton').hidden = true;
       setBusy(true); showMessage(kind + '에서 출장 내역을 인식하는 중입니다… 잠시 기다려 주세요.');
       try {
-        const result = await api('/api/parse', {filename: file.name || (isPdf(file) ? '자료.pdf' : '캡처.png'), data: await fileAsBase64(file)});
+        const result = await api('/api/parse', {filename: file.name || (isPdf(file) ? '자료.pdf' : '캡처.png'), data: await fileAsBase64(file), ...(layout ? {layout} : {})});
         if (!Array.isArray(result.trips) || !result.trips.length) throw new Error('인식된 출장 내역이 없습니다. 출장 목록 표가 포함된 캡처 또는 PDF인지 확인해 주세요.');
-        state.trips = result.trips.map(trip => ({...trip, include: trip.include !== false})); state.warnings = Array.isArray(result.warnings) ? result.warnings.map(String) : []; state.sourceName = result.source_name || file.name || '캡처'; state.sourceFile = file; state.sourcePreviewData = isPdf(file) ? (result.preview_data || null) : null; state.sourcePreviewNote = String(result.preview_note || ''); state.completed = false; state.calculationDirty = false;
+        state.trips = result.trips.map(trip => ({...trip, include: trip.include !== false})); state.warnings = Array.isArray(result.warnings) ? result.warnings.map(String) : []; state.sourceName = result.source_name || file.name || '캡처'; state.sourceFile = file; state.sourcePreviewData = isPdf(file) ? (result.preview_data || null) : null; state.sourcePreviewNote = String(result.preview_note || ''); state.approvalPolicy = result.approval_policy || 'from_image'; state.completed = false; state.calculationDirty = false;
+        closeGuide(); $('guideButton').hidden = true;
+        const approvedPdf = state.approvalPolicy === 'source_system_approved_export';
+        $('dataConfirmedLabel').textContent = approvedPdf ? 'PDF 내용과 청구대상을 확인했습니다.' : 'OCR 내용과 지급대상(결재상태)을 원본과 대조해 확인했습니다.';
+        $('confirmationHelp').textContent = approvedPdf ? '지급기준과 PDF 내용을 확인하고 필수 정보가 충족되면 최종 명세서로 저장합니다.' : '두 항목을 확인하고 필수 정보와 결재상태가 충족되면 최종 명세서로 저장합니다.';
+        $('approvalPolicyNote').hidden = !approvedPdf;
         $('officerTitle').value = ''; $('officerName').value = ''; $('ratesConfirmed').checked = false; $('dataConfirmed').checked = false;
         for (const [key,id] of Object.entries(rateIds)) $(id).value = (result.rates && result.rates[key] !== undefined) ? result.rates[key] : defaultRates[key];
         showPreview(file, state.sourcePreviewData, state.sourcePreviewNote);
@@ -144,9 +268,10 @@
         $('previewStatus').textContent = '아래 출장 내역의 원본 자료입니다. 인식 내용과 대조해 주세요.'; $('imagePreview').open = false;
         $('emptyState').hidden = true; $('workspace').hidden = false; $('sourceName').textContent = state.sourceName;
         $('step1').classList.remove('active'); $('step2').classList.add('active'); $('step3').classList.remove('active');
-        renderRows(); updateSummary(); showMessage('출장 ' + state.trips.length + '건을 인식했습니다. 실제 출장시간·공용차량·결재상태를 원본과 확인해 주세요.', 'success');
+        renderRows(); updateSummary(); showMessage('출장 ' + state.trips.length + '건을 인식했습니다. ' + (approvedPdf ? 'PDF 내용과 실제 출장시간·공용차량·금액을 확인해 주세요.' : '실제 출장시간·공용차량·결재상태를 원본과 확인해 주세요.'), 'success');
       } catch (err) {
-        $('imagePreview').open = true; $('retryButton').hidden = false;
+        $('imagePreview').open = true; $('retryButton').hidden = false; $('guideButton').hidden = isPdf(file);
+        if (layout) {resetGuideConfirmation(); $('guideStatus').textContent = '이 배치로 인식하지 못했습니다. 원본과 선·행 수를 다시 맞춰 주세요.';}
         $('uploadSubtitle').textContent = '인식 실패 · 원본을 확인한 뒤 다시 인식하거나 다른 캡처 / PDF를 선택해 주세요.';
         $('previewStatus').classList.add('failed');
         const retained = state.trips.length ? '아래 표에는 이전 자료 “' + state.sourceName + '”의 ' + state.trips.length + '건이 그대로 유지됩니다. 새 자료의 인식 결과가 아닙니다.' : '아직 출장 내역으로 변환되지 않았습니다. 표의 열 제목과 글자가 모두 보이는지 확인해 주세요.';
@@ -286,6 +411,12 @@
       }
       $('copyDiagnosticStatus').textContent = copied ? '진단 정보를 복사했습니다.' : '아래 내용을 선택한 뒤 Ctrl+C로 복사해 주세요.';
     });
+    $('guideButton').addEventListener('click', openGuide);
+    $('guideCloseButton').addEventListener('click', () => {if (!state.busy) $('guidePanel').hidden = true;});
+    $('guidePresetButton').addEventListener('click', presetGuide);
+    $('guideConfirmed').addEventListener('change', updateGuideReady);
+    $('guideRows').addEventListener('input', () => {if (!state.guide) return; state.guide.rowCount = Number($('guideRows').value); resetGuideConfirmation(); if (Number.isInteger(state.guide.rowCount) && state.guide.rowCount >= 1 && state.guide.rowCount <= 100) renderGuide(); $('guideStatus').textContent = validGuide(state.guide) ? '행 구분선이 각 출장 행과 맞는지 확인해 주세요.' : '행 수는 1~100 사이의 정수이며, 본문 범위 안의 실제 출장 행과 맞아야 합니다.';});
+    $('guideParseButton').addEventListener('click', () => {if (state.guide && $('guideConfirmed').checked && validGuide(state.guide) && !state.busy) loadFile(state.guide.file,true,guidePayload());});
     $('retryButton').addEventListener('click', () => loadFile(state.attemptFile, true));
     $('openImageButton').addEventListener('click', () => {if (state.previewUrl && !state.busy) window.open(state.previewUrl, '_blank', 'noopener');});
     $('previousSourceButton').addEventListener('click', () => {
@@ -305,7 +436,7 @@
     let dragDepth = 0; const dropZone = $('dropZone');
     dropZone.addEventListener('dragenter', event => {event.preventDefault(); if (!state.busy) {dragDepth++; dropZone.classList.add('drag');}}); dropZone.addEventListener('dragover', event => {event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = state.busy ? 'none' : 'copy';}); dropZone.addEventListener('dragleave', event => {event.preventDefault(); dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropZone.classList.remove('drag');}); dropZone.addEventListener('drop', event => {event.preventDefault(); dragDepth = 0; dropZone.classList.remove('drag'); if (!state.busy) {if (event.dataTransfer.files.length > 1) showMessage('한 번에 캡처 또는 PDF 한 개를 선택해 주세요.', 'error'); else loadFile(event.dataTransfer.files[0]);}});
     window.addEventListener('dragover', event => event.preventDefault()); window.addEventListener('drop', event => event.preventDefault());
-    $('exitButton').addEventListener('click', async () => {if (state.busy) return; if (state.trips.length && !state.completed && !window.confirm('저장하지 않은 내용이 있습니다. 프로그램을 종료할까요?')) return; try {await api('/api/shutdown', {}); $('workspace').hidden = true; $('emptyState').hidden = true; $('dropZone').hidden = true; $('imagePreview').hidden = true; $('exitButton').disabled = true; showMessage('프로그램을 종료했습니다. 이 브라우저 탭을 닫아 주세요.', 'success');} catch (err) {showError(err);}});
+    $('exitButton').addEventListener('click', async () => {if (state.busy) return; if (state.trips.length && !state.completed && !window.confirm('저장하지 않은 내용이 있습니다. 프로그램을 종료할까요?')) return; try {await api('/api/shutdown', {}); $('workspace').hidden = true; $('emptyState').hidden = true; $('dropZone').hidden = true; $('imagePreview').hidden = true; $('exitButton').disabled = true; closeGuide(); showMessage('프로그램을 종료했습니다. 이 브라우저 탭을 닫아 주세요.', 'success');} catch (err) {showError(err);}});
   </script>
 </body>
 </html>

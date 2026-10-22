@@ -3,13 +3,14 @@ from pathlib import Path
 import json
 import sys
 import unittest
+from unittest import mock
 
 import fitz
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "app"))
 import monthly_report as report
-from renderer import recalculate
+from renderer import recalculate, render_pdf
 
 
 def synthetic_monthly_pdf(rows=None):
@@ -62,12 +63,37 @@ class MonthlyPdfTests(unittest.TestCase):
         self.assertEqual(sum(t["include"] for t in trips),9)
         self.assertEqual({t["name"] for t in trips},{"홍길동"})
         self.assertEqual({t["rank"] for t in trips},{"지방농촌지도사"})
-        self.assertTrue(all(t["approval_status"]=="" for t in trips))
+        self.assertTrue(all(t["approval_status"]=="결재완료" for t in trips))
+        self.assertEqual(result["input_kind"], "pdf")
+        self.assertEqual(result["approval_policy"], "source_system_approved_export")
+        self.assertTrue(any("시스템에서 결재완료된 출장만" in warning for warning in result["warnings"]))
+        self.assertFalse(any("지급대상을 별도로 확인" in warning for warning in result["warnings"]))
         self.assertTrue(all(t["daily_allowance"]==0 for t in trips))
         calculated=recalculate(trips)["trips"]
         self.assertEqual(sum(t["claim_amount"] or 0 for t in calculated if t["include"]),130000)
         self.assertNotIn("TEST0001",json.dumps(result,ensure_ascii=False))
         self.assertTrue(result["preview_data"])
+        _,info=render_pdf(calculated,rates_confirmed=True,data_confirmed=True)
+        self.assertFalse(info["is_draft"])
+        self.assertEqual(info["count"],9)
+
+    def test_monthly_screenshot_does_not_inherit_pdf_approval_policy(self):
+        headers=["순번", "소속/직급", "성명", "출장기간", "총출장시간", "구분", "공무용차량", "출장지", "출장목적", "여비등급", "일비", "식비", "숙박비", "교통비", "현지교통비", "기타", "합계", "청구액(수령액)"]
+        row=["1","시험지원과/주무관","가명인","2026-10-22 09:00 ~ 2026-10-22 14:00","5시간","근무지내","미사용","가상읍","현장 확인","제2호"]+["0"]*8
+        # Reuse already recognized cells: this tests the source policy boundary,
+        # independently of the OCR engine. A misleading filename is irrelevant.
+        with mock.patch.object(report,"_recover_report_grid",return_value=None):
+            with mock.patch.object(report,"_image_cells",return_value=[headers,row]):
+                result=report.try_parse_monthly_image(object(),list(range(19)),[0,1,2],[],"approved-report.pdf")
+        self.assertEqual(result["trips"][0]["approval_status"],"")
+        self.assertEqual(result["input_kind"], "image")
+        self.assertEqual(result["approval_policy"], "from_image")
+        self.assertTrue(any("지급대상을 별도로 확인" in warning for warning in result["warnings"]))
+        self.assertFalse(any("결재상태를 '결재완료'로 적용" in warning for warning in result["warnings"]))
+        calculated=recalculate(result["trips"])["trips"]
+        _,info=render_pdf(calculated,rates_confirmed=True,data_confirmed=True)
+        self.assertTrue(info["is_draft"])
+        self.assertTrue(any("결재상태 확인 필요" in warning for warning in info["warnings"]))
 
     def test_unknown_rank_and_missing_end_are_not_invented(self):
         row=["1","이름만있는부서","가명인\n(A123456)","2026-10-22 09:00","", "근무지내", "미사용", "가상읍", "확인", "제2호"]+["0"]*8

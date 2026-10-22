@@ -2,6 +2,8 @@
 
 PDF text extraction is local. The optional image path uses the same local OCR
 engine as the screenshot reader. Employee identifiers are never returned.
+Supported PDF exports follow the user's approved-trips-only export policy;
+the same approval assumption does not apply to screenshots.
 """
 from __future__ import annotations
 
@@ -151,11 +153,16 @@ def _parse_cells(cells, ordinal):
 def _result(trips, warnings, filename, *, image=False):
     if not trips:
         raise ValueError("월별집계 표에서 출장 내역을 찾지 못했습니다. 소계·총계만 있는 빈 목록인지 확인해 주세요.")
-    warnings.insert(0, "월별집계에는 결재상태가 없습니다. 결재완료로 자동 표시하지 않았으니 지급대상을 별도로 확인해 주세요.")
+    if image:
+        warnings.insert(0, "월별집계 캡처에는 결재상태가 없습니다. 결재완료로 자동 표시하지 않았으니 지급대상을 별도로 확인해 주세요.")
+    else:
+        warnings.insert(0, "PDF 입력은 시스템에서 결재완료된 출장만 내려받은 월별집계로 간주하여 결재상태를 '결재완료'로 적용했습니다.")
     warnings.insert(0, "일비·청구액은 인식 후 화면의 지급기준으로 다시 계산하므로 원본 금액과 다를 수 있습니다. 지급기준과 결과를 확인해 주세요.")
     if image:
         warnings.insert(0, "월별집계 캡처 OCR 결과입니다. 성명·실제 출장일시·차량·경비를 원본과 대조해 주세요.")
     return {"trips": trips, "warnings": list(dict.fromkeys(warnings)),
+            "input_kind": "image" if image else "pdf",
+            "approval_policy": "from_image" if image else "source_system_approved_export",
             "source_name": re.split(r"[/\\]", str(filename))[-1] or ("capture.png" if image else "report.pdf")}
 
 
@@ -192,6 +199,10 @@ def parse_pdf(pdf_bytes: bytes, filename: str = "report.pdf") -> dict:
                         raise ValueError("출장 내역은 500건까지 처리할 수 있습니다.")
         if not trips:
             raise ValueError("이 PDF에서 지원하는 18열 '출장 월별집계' 표를 찾지 못했습니다. 해당 목록의 PDF 또는 캡처를 넣어 주세요.")
+        # The user confirmed that the system exports only approved trips to
+        # this PDF. Keep this policy here, separate from shared image parsing.
+        for trip in trips:
+            trip["approval_status"] = "결재완료"
         result = _result(trips, warnings, filename)
         scale = min(1.8, 1600 / max(document[0].rect.width, 1))
         preview = document[0].get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False).tobytes("png")

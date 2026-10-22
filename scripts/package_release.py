@@ -49,7 +49,7 @@ def licenses():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", default="0.2.1")
+    parser.add_argument("--version", default="0.2.2")
     args = parser.parse_args()
     if not all(char in "0123456789.-abcdefghijklmnopqrstuvwxyz" for char in args.version):
         parser.error("Use a simple release version")
@@ -88,7 +88,8 @@ def main():
         "4. 기관 지급기준을 확인하고 일비 다시 계산 후 PDF를 저장합니다.\n"
         "5. 작업이 끝나면 프로그램 화면의 종료를 누릅니다.\n\n"
         "이미지·PDF는 외부 서버로 보내지 않습니다. Python 설치는 필요하지 않습니다.\n"
-        "결재상태가 없는 월별집계는 결재완료로 자동 표시하지 않습니다.\n"
+        "월별집계 PDF는 시스템의 결재완료 내역으로 처리합니다.\n"
+        "캡처의 열 인식이 실패하면 표 배치 직접 확인으로 경계와 행 수를 확인하세요.\n"
         "미확인 내용이나 지급기준 확인이 남으면 검토용으로 저장합니다.\n"
         "관외·여러 날 출장은 자동 계산 범위 밖이므로 별도 검토가 필요합니다.\n\n"
         "DOCX와 TXT 제안서는 복사·수정용 초안입니다.\n"

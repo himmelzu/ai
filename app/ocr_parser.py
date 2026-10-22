@@ -11,6 +11,7 @@ from collections import Counter, defaultdict
 import csv
 from datetime import date
 import io
+import math
 import os
 from pathlib import Path
 import re
@@ -36,6 +37,16 @@ class TableLayout(NamedTuple):
     xs: list[float]
     first_data_row: int
     recovered: bool
+
+
+class LayoutRecognitionError(ValueError):
+    """A layout failure with numeric-only, privacy-safe diagnostic context."""
+
+    def __init__(self, message: str, error_code: str, **counts: int | float | bool):
+        super().__init__(message)
+        self.error_code = error_code
+        self.diagnostics = {key: value for key, value in counts.items()
+                            if isinstance(value, (int, float, bool)) and math.isfinite(value)}
 
 
 _COLUMNS = (
@@ -472,12 +483,17 @@ def _resolve_layout(words: list[Word], xs: list[float], ys: list[float]) -> Tabl
     shape and vehicle/approval fields. Requested times never supply actual times.
     """
     if len(xs) < 13 or len(ys) < 3:
-        raise ValueError("출장 목록 표를 찾지 못했습니다. 열 제목과 표 테두리가 모두 보이도록 캡처해 주세요.")
+        raise LayoutRecognitionError("출장 목록 표를 찾지 못했습니다. 열 제목과 표 테두리가 모두 보이도록 캡처해 주세요.",
+                                     "OCR_GRID_NOT_FOUND", grid_columns=max(0, len(xs) - 1),
+                                     grid_rows=max(0, len(ys) - 1), ocr_words=len(words))
     rows = _physical_cells(words, xs, ys)
     first_body = _body_start(rows)
     header_end = first_body if first_body is not None else min(2, len(rows))
     headers = [" ".join(row[col] for row in rows[:header_end]) for col in range(len(xs) - 1)]
     candidates = []
+    rejected_headers = rejected_evidence = rejected_period = 0
+    best_header_score = 0.0
+    most_strong_rows = 0
     for department in range(1, min(5, len(xs) - 10)):
         for actual_span in (1, 2):
             requested = department + 4 + actual_span
@@ -488,6 +504,7 @@ def _resolve_layout(words: list[Word], xs: list[float], ys: list[float]) -> Tabl
                      "vehicle": requested + 4, "approval": requested + 5}
             scores = {role: _header_score(headers[column], role) for role, column in roles.items()}
             header_score = sum(scores.values())
+            best_header_score = max(best_header_score, header_score)
             # A clearly identified column in a different position is not an OCR
             # spelling error. Never shift its values into the proposed column.
             contradiction = False
@@ -497,6 +514,7 @@ def _resolve_layout(words: list[Word], xs: list[float], ys: list[float]) -> Tabl
                     contradiction = True
                     break
             if contradiction:
+                rejected_headers += 1
                 continue
             evidence = []
             body_rows = []
@@ -537,6 +555,7 @@ def _resolve_layout(words: list[Word], xs: list[float], ys: list[float]) -> Tabl
                 strong = len(dates) >= 2 and len(times) == 2 and number_supported and name_valid and identity_supported and metadata >= 1 and (vehicle or approval)
                 evidence.append((strong, vehicle and approval and metadata == 2))
             strong_count = sum(item[0] for item in evidence)
+            most_strong_rows = max(most_strong_rows, strong_count)
             sequence = len(numbers) == len(set(numbers)) and all(b > a for a, b in zip(numbers, numbers[1:]))
             # Full readable headings also support rows whose actual time is
             # missing. Missing values remain blank and therefore need review.
@@ -544,10 +563,12 @@ def _resolve_layout(words: list[Word], xs: list[float], ys: list[float]) -> Tabl
             minimum = 1 if len(body_rows) == 1 and evidence and evidence[0][1] else 2
             body_supported = (strong_count >= minimum and strong_count >= len(body_rows) * 0.6 and sequence)
             if not (trusted_header or body_supported):
+                rejected_evidence += 1
                 continue
             # If a table body has dates but none in this candidate's period
             # column, even otherwise plausible labels cannot validate its layout.
             if first_body is not None and body_rows and not date_rows:
+                rejected_period += 1
                 continue
             start = min(body_rows) if body_rows else (header_end if header_end < len(rows) else 1)
             # An unreadable No/date/time in the first trip is still a trip.
@@ -565,10 +586,16 @@ def _resolve_layout(words: list[Word], xs: list[float], ys: list[float]) -> Tabl
             score = header_score * 2 + (strong_count / max(1, len(body_rows))) * 8
             candidates.append((score, TableLayout([xs[index] for index in indices], start, recovered)))
     if not candidates:
-        raise ValueError("표의 열 배치를 확정하지 못했습니다. 부서·실제 확인시각·신청 출장기간·결재상태가 보이는 원본 캡처로 다시 시도해 주세요.")
+        raise LayoutRecognitionError("표의 열 배치를 확정하지 못했습니다. 부서·실제 확인시각·신청 출장기간·결재상태가 보이는 원본 캡처로 다시 시도해 주세요.",
+                                     "OCR_LAYOUT_UNCONFIRMED", grid_columns=len(xs) - 1, grid_rows=len(ys) - 1,
+                                     ocr_words=len(words), candidate_count=0, header_conflicts=rejected_headers,
+                                     weak_evidence=rejected_evidence, missing_period=rejected_period,
+                                     best_header_score=best_header_score, strongest_rows=most_strong_rows)
     candidates.sort(key=lambda item: item[0], reverse=True)
     if len(candidates) > 1 and candidates[0][0] - candidates[1][0] < 2:
-        raise ValueError("표의 열 배치가 두 가지 이상으로 읽힙니다. 부서부터 결재상태까지 보이도록 표 부분을 잘라 다시 넣어 주세요.")
+        raise LayoutRecognitionError("표의 열 배치가 두 가지 이상으로 읽힙니다. 부서부터 결재상태까지 보이도록 표 부분을 잘라 다시 넣어 주세요.",
+                                     "OCR_LAYOUT_AMBIGUOUS", grid_columns=len(xs) - 1, grid_rows=len(ys) - 1,
+                                     ocr_words=len(words), candidate_count=len(candidates))
     return candidates[0][1]
 
 
@@ -653,8 +680,8 @@ def _parse_cells(cells: dict[str, str], row_number: int) -> tuple[dict, list[str
     return trip, warnings
 
 
-def _parse_table(words: list[Word], xs: list[float], ys: list[float], review_notes: dict[int, list[str]] | None = None, first_data_row: int | None = None) -> tuple[list[dict], list[str]]:
-    if len(xs) != 13 or len(ys) < 3:
+def _parse_table(words: list[Word], xs: list[float], ys: list[float], review_notes: dict[int, list[str]] | None = None, first_data_row: int | None = None, preserve_rows: bool = False) -> tuple[list[dict], list[str]]:
+    if len(xs) != 13 or len(ys) < (2 if first_data_row is not None else 3):
         raise ValueError("12열 출장 목록 표를 찾지 못했습니다. 열 제목과 표 테두리가 모두 보이도록 캡처해 주세요.")
     rows: list[list[list[Word]]] = [[[] for _ in _COLUMNS] for _ in range(len(ys) - 1)]
     for word in words:
@@ -676,10 +703,10 @@ def _parse_table(words: list[Word], xs: list[float], ys: list[float], review_not
     trips, warnings = [], []
     for index in range(first_data_row, len(texts)):
         cells = texts[index]
-        if not any(cells.values()):
+        if not any(cells.values()) and not preserve_rows:
             continue
         # A second header tier may have its own full-width rule.
-        if not re.search(r"\d", cells.get("number", "")) and not cells.get("name") and not _dates(cells.get("requested", "")) and not _times(cells.get("actual", "")):
+        if not preserve_rows and not re.search(r"\d", cells.get("number", "")) and not cells.get("name") and not _dates(cells.get("requested", "")) and not _times(cells.get("actual", "")):
             continue
         number = len(trips) + 1
         trip, notes = _parse_cells(cells, number)
@@ -695,8 +722,8 @@ def _parse_table(words: list[Word], xs: list[float], ys: list[float], review_not
     return trips, warnings
 
 
-def parse_image(image_bytes: bytes, filename: str = "capture.png") -> dict:
-    """Extract reviewable travel entries from an image using bundled local OCR."""
+def _load_image(image_bytes: bytes) -> fitz.Pixmap:
+    """Apply the same image bounds to automatic and user-confirmed layouts."""
     if not image_bytes:
         raise ValueError("이미지 파일이 비어 있습니다.")
     if len(image_bytes) > 30 * 1024 * 1024:
@@ -713,12 +740,22 @@ def parse_image(image_bytes: bytes, filename: str = "capture.png") -> dict:
         raise ValueError("이미지가 너무 작습니다. 출장 목록 전체를 더 크게 캡처해 주세요.")
     if pix.width > 12000 or pix.height > 12000 or pix.width * pix.height > 18000000:
         raise ValueError("이미지가 너무 큽니다. 출장 목록 표 부분만 잘라서 넣어 주세요.")
+    return pix
+
+
+def parse_image(image_bytes: bytes, filename: str = "capture.png") -> dict:
+    """Extract reviewable travel entries from an image using bundled local OCR."""
+    pix = _load_image(image_bytes)
     xs, ys = _grid(pix)
     if len(xs) < 13 or len(ys) < 3:
-        raise ValueError("출장 목록 표를 찾지 못했습니다. 열 제목과 표 테두리가 모두 보이도록 캡처해 주세요.")
+        raise LayoutRecognitionError("출장 목록 표를 찾지 못했습니다. 열 제목과 표 테두리가 모두 보이도록 캡처해 주세요.",
+                                     "OCR_GRID_NOT_FOUND", grid_columns=max(0, len(xs) - 1),
+                                     grid_rows=max(0, len(ys) - 1), image_width=pix.width, image_height=pix.height)
     words = _recognize(pix, xs, ys)
     if not words:
-        raise ValueError("이미지에서 글자를 읽지 못했습니다. 선명한 캡처 파일을 넣어 주세요.")
+        raise LayoutRecognitionError("이미지에서 글자를 읽지 못했습니다. 선명한 캡처 파일을 넣어 주세요.",
+                                     "OCR_TEXT_NOT_FOUND", grid_columns=len(xs) - 1,
+                                     grid_rows=len(ys) - 1, ocr_words=0)
     # The source system also exports a distinct 18-column monthly report.
     # Its geometry and field meanings must be handled before the 12-column UI.
     if len(xs) >= 18:
@@ -728,6 +765,8 @@ def parse_image(image_bytes: bytes, filename: str = "capture.png") -> dict:
             from monthly_report import try_parse_monthly_image
         monthly = try_parse_monthly_image(pix, xs, ys, words, filename)
         if monthly is not None:
+            monthly["input_kind"] = "image"
+            monthly["approval_policy"] = "from_image"
             return monthly
     layout = None
     try:
@@ -756,7 +795,9 @@ def parse_image(image_bytes: bytes, filename: str = "capture.png") -> dict:
             # unique body-validated layout remains a reviewable recovery.
         else:
             if layout is not None and layout.xs != retried_layout.xs:
-                raise ValueError("표의 열 배치가 재인식 전후 다릅니다. 원본 표 부분을 잘라 다시 넣어 주세요.")
+                raise LayoutRecognitionError("표의 열 배치가 재인식 전후 다릅니다. 원본 표 부분을 잘라 다시 넣어 주세요.",
+                                             "OCR_LAYOUT_CHANGED", grid_columns=len(xs) - 1,
+                                             grid_rows=len(ys) - 1, ocr_words=len(words))
             words = combined
             layout = retried_layout
     logical_xs = layout.xs
@@ -769,4 +810,119 @@ def parse_image(image_bytes: bytes, filename: str = "capture.png") -> dict:
     trips, warnings = _parse_table(words, logical_xs, ys, review_notes, layout.first_data_row)
     warnings.insert(0, "OCR 결과입니다. 이름·날짜·실제 확인시각·공용차량 사용 여부를 원본과 대조한 뒤 PDF를 만드세요.")
     source_name = re.split(r"[/\\]", str(filename))[-1] or "capture.png"
-    return {"trips": trips, "warnings": warnings, "source_name": source_name}
+    return {"trips": trips, "warnings": warnings, "source_name": source_name,
+            "input_kind": "image", "approval_policy": "from_image"}
+
+
+_GUIDED_SCHEMA = "local-trip-ui-v1"
+_GUIDED_LABELS = ["번호", "부서", "직급", "출장자", "식별번호", "실제 시작·종료",
+                  "신청 출장기간", "출장지", "출장목적", "여비등급", "공용차량", "결재상태"]
+_GUIDED_NOTE = "사용자가 확인한 표 배치로 읽었습니다. 열 위치와 각 행의 이름·실제 시각·차량·결재상태를 원본과 대조해 주세요."
+
+
+def suggest_image_layout(image_bytes: bytes) -> dict:
+    """Return an editable proposal, never an automatically trusted layout.
+
+    Grid counts alone cannot distinguish UI controls or identify a form. Every
+    returned geometry therefore needs the user's explicit overlay confirmation.
+    The preset is only the documented 근무지내출장처리 screen shape.
+    """
+    pix = _load_image(image_bytes)
+    physical_xs, physical_ys = _grid(pix)
+    logical_xs = [value / 1244 * pix.width for value in
+                  (43, 93, 225, 327, 373, 443, 604, 825, 919, 1076, 1123, 1171, 1234)]
+    grid_columns = False
+    if len(physical_xs) == 13:
+        logical_xs = physical_xs
+        grid_columns = True
+    elif len(physical_xs) == 15:
+        # Provisional only: checkbox, then the actual-time split column.
+        logical_xs = physical_xs[1:7] + physical_xs[8:15]
+        grid_columns = True
+    top, bottom = pix.height * 89 / 381, pix.height * 369 / 381
+    count = max(1, min(10, int((bottom - top) / 12)))
+    grid_rows = False
+    if len(physical_ys) >= 2:
+        gaps = [b - a for a, b in zip(physical_ys, physical_ys[1:])]
+        typical = gaps[-1] if len(gaps) <= 2 else statistics.median(gaps[-5:])
+        start = len(physical_ys) - 2
+        while start > 0 and abs(gaps[start - 1] - typical) <= max(2, typical * 0.15):
+            start -= 1
+        proposed_count = len(physical_ys) - start - 1
+        if typical >= 10 and proposed_count <= 200:
+            top, bottom = physical_ys[start], physical_ys[-1]
+            count = proposed_count
+            grid_rows = True
+    return {
+        "schema": _GUIDED_SCHEMA, "xs": [x / pix.width for x in logical_xs],
+        "body_top": top / pix.height, "body_bottom": bottom / pix.height, "row_count": count,
+        "image_width": pix.width, "image_height": pix.height, "confirmed": False,
+        "provisional": True, "hint_source": "grid" if grid_columns and grid_rows else "preset",
+        "columns": list(_GUIDED_LABELS),
+    }
+
+
+def _confirmed_geometry(pix: fitz.Pixmap, layout: dict) -> tuple[list[float], list[float]]:
+    if not isinstance(layout, dict) or layout.get("schema") != _GUIDED_SCHEMA:
+        raise ValueError("표 배치 형식이 올바르지 않습니다. 근무지내출장처리 목록의 배치를 다시 확인해 주세요.")
+    if layout.get("confirmed") is not True:
+        raise ValueError("원본 위의 열 위치와 첫 행·마지막 행을 확인한 뒤 배치 확인란을 표시해 주세요.")
+    for key, actual in (("image_width", pix.width), ("image_height", pix.height)):
+        if type(layout.get(key)) is not int or layout[key] != actual:
+            raise ValueError("배치를 확인한 이미지와 현재 이미지가 다릅니다. 현재 원본에서 배치를 다시 확인해 주세요.")
+
+    def fraction(value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1 or not math.isfinite(value):
+            raise ValueError("표 경계는 이미지 안에서 순서대로 지정해 주세요.")
+        return float(value)
+
+    normalized = layout.get("xs")
+    if not isinstance(normalized, list) or len(normalized) != 13:
+        raise ValueError("번호부터 결재상태까지 12개 열의 경계를 확인해 주세요.")
+    xs = [round(fraction(value) * pix.width, 3) for value in normalized]
+    if any(b - a < 4 for a, b in zip(xs, xs[1:])) or xs[-1] - xs[0] < 350:
+        raise ValueError("표의 열이 너무 좁거나 순서가 바뀌었습니다. 열 경계를 다시 확인해 주세요.")
+    count = layout.get("row_count")
+    if type(count) is not int or not 1 <= count <= 200:
+        raise ValueError("출장 행 수는 1~200 사이의 정수로 입력해 주세요.")
+    top, bottom = (round(fraction(layout.get(key)) * pix.height, 3) for key in ("body_top", "body_bottom"))
+    row_height = (bottom - top) / count
+    if not 10 <= row_height <= 300:
+        raise ValueError("첫 출장 행 위와 마지막 행 아래를 맞추고, 실제 출장 행 수를 확인해 주세요.")
+    return xs, [top + row_height * index for index in range(count + 1)]
+
+
+def _guided_content_supported(rows: list[list[str]]) -> bool:
+    for cells in rows:
+        dates = _dates(cells[6])
+        actual = _times(cells[5])
+        name = re.sub(r"\s+", "", cells[3])
+        identity = bool(re.fullmatch(r"[가-힣A-Za-z·.\-]{2,30}", name))
+        metadata = bool(re.search(r"[가-힣A-Za-z]{2}", _compact(cells[1]) + _compact(cells[2])))
+        state = _compact(cells[10]) in _VEHICLE_LABELS or _compact(cells[11]) in _APPROVAL_LABELS
+        if dates and identity and metadata and (actual or state):
+            return True
+    return False
+
+
+def parse_image_with_layout(image_bytes: bytes, filename: str, layout: dict) -> dict:
+    """Read only after the user confirms the 12-column screen's body geometry."""
+    pix = _load_image(image_bytes)
+    xs, ys = _confirmed_geometry(pix, layout)
+    words = _recognize(pix, xs, ys)
+    if not words:
+        raise LayoutRecognitionError("지정한 영역에서 글자를 읽지 못했습니다. 원본과 표 범위를 다시 확인해 주세요.",
+                                     "OCR_GUIDED_TEXT_NOT_FOUND", grid_columns=12, grid_rows=len(ys) - 1, ocr_words=0)
+    words, review_notes = _refine_identity_columns(pix, words, xs, ys, 0)
+    words = _refine_actual_times(pix, words, xs, ys, 0)
+    if not _guided_content_supported(_physical_cells(words, xs, ys)):
+        raise LayoutRecognitionError("지정한 열에서 출장 날짜와 이름·실제 시각 또는 차량·결재상태를 함께 확인하지 못했습니다. 열 위치를 원본과 다시 맞춰 주세요.",
+                                     "OCR_GUIDED_CONTENT_UNCONFIRMED", grid_columns=12,
+                                     grid_rows=len(ys) - 1, ocr_words=len(words))
+    for index in range(len(ys) - 1):
+        review_notes.setdefault(index, []).append(_GUIDED_NOTE)
+    trips, warnings = _parse_table(words, xs, ys, review_notes, first_data_row=0, preserve_rows=True)
+    warnings.insert(0, _GUIDED_NOTE)
+    return {"trips": trips, "warnings": list(dict.fromkeys(warnings)),
+            "source_name": re.split(r"[/\\]", str(filename))[-1] or "capture.png",
+            "input_method": "confirmed_layout", "input_kind": "image", "approval_policy": "from_image"}

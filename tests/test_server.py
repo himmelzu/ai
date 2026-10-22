@@ -37,10 +37,11 @@ class ServerTests(unittest.TestCase):
             return json.load(response)
 
     def test_token_and_origin_enforced(self):
-        for token, origin in ((False, None), (True, "https://example.com")):
-            with self.assertRaises(HTTPError) as exc:
-                self.request("/api/recalculate", {"trips": [trip()]}, token, origin)
-            self.assertEqual(exc.exception.code, 403)
+        for route in ("/api/recalculate", "/api/layout", "/api/parse"):
+            for token, origin in ((False, None), (True, "https://example.com")):
+                with self.assertRaises(HTTPError) as exc:
+                    self.request(route, {"trips": [trip()]}, token, origin)
+                self.assertEqual(exc.exception.code, 403)
 
     def test_calculate_render_roundtrip(self):
         result = self.request("/api/recalculate", {"trips": [trip()]})
@@ -82,6 +83,41 @@ class ServerTests(unittest.TestCase):
             result = json.load(error.exception)
         self.assertEqual(result["error_code"], "INPUT_PARSE_FAILED")
         self.assertNotIn("private path", result["diagnostics"])
+
+    def test_layout_validation_error_explains_stage_without_ocr_values(self):
+        error = ValueError("표 배치를 원본과 확인해 주세요.")
+        error.error_code = "LAYOUT_UNRESOLVED"
+        error.diagnostics = {"grid_columns": 16, "candidate_count": 0,
+                             "recognized_name": "PRIVATE_NAME", "source_path": "C:/Users/PRIVATE_USER",
+                             "rows": {"valid": 10, "raw_text": "PRIVATE_NAME"}}
+        with patch("backend.parse_capture", side_effect=error):
+            with self.assertRaises(HTTPError) as response:
+                self.request("/api/parse", {"data": base64.b64encode(b"fixture").decode(), "filename": "PRIVATE_USER.png"})
+        self.assertEqual(response.exception.code, 400)
+        result = json.load(response.exception)
+        self.assertEqual(result["error_code"], "LAYOUT_UNRESOLVED")
+        self.assertIn('"candidate_count": 0', result["diagnostics"])
+        self.assertIn("stage=parse", result["diagnostics"])
+        self.assertNotIn("PRIVATE_", result["diagnostics"])
+
+    def test_layout_hint_is_provisional_and_cannot_bypass_confirmation(self):
+        from test_ocr_header import controlled_capture
+        payload = {"filename": "pseudonym.png", "data": base64.b64encode(controlled_capture().tobytes("png")).decode()}
+        hint = self.request("/api/layout", payload)["layout"]
+        self.assertTrue(hint["provisional"])
+        self.assertEqual(len(hint["xs"]), 13)
+        self.assertEqual(hint["image_width"], 1244)
+        self.assertIsNot(hint.get("confirmed"), True)
+        with self.assertRaises(HTTPError) as response:
+            self.request("/api/parse", {**payload, "layout": hint})
+        self.assertEqual(response.exception.code, 400)
+
+    def test_pdf_cannot_use_image_layout_route(self):
+        payload = {"filename": "report.pdf", "data": base64.b64encode(b"%PDF-1.4").decode()}
+        for route, extra in (("/api/layout", {}), ("/api/parse", {"layout": {"confirmed": True}})):
+            with self.assertRaises(HTTPError) as response:
+                self.request(route, {**payload, **extra})
+            self.assertEqual(response.exception.code, 400)
 
 
 if __name__ == "__main__":
