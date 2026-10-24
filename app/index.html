@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <header class="masthead"><div class="masthead-inner"><div class="brand-icon" aria-hidden="true"><svg width="23" height="25" viewBox="0 0 23 25" fill="none"><path d="M4 1.5h10L20 8v15H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 2v6h6M8 12h8M8 16h8M8 20h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><div><div class="brand">여비청구서 변환기</div><div class="brand-sub">TRAVEL CLAIM ASSISTANT · v0.3.0</div></div><div class="spacer"></div><span class="local-badge">내 PC에서 처리</span><button id="exitButton" class="exit-btn" type="button">종료</button></div></header>
+  <header class="masthead"><div class="masthead-inner"><div class="brand-icon" aria-hidden="true"><svg width="23" height="25" viewBox="0 0 23 25" fill="none"><path d="M4 1.5h10L20 8v15H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 2v6h6M8 12h8M8 16h8M8 20h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><div><div class="brand">여비청구서 변환기</div><div class="brand-sub">TRAVEL CLAIM ASSISTANT · v0.3.1</div></div><div class="spacer"></div><span class="local-badge">내 PC에서 처리</span><button id="exitButton" class="exit-btn" type="button">종료</button></div></header>
   <main>
     <p class="eyebrow">PDF → 여비지급명세서</p><h1>출장 PDF를 청구내역서로, 간편하게.</h1><p class="intro-text">다운받은 개인별 출장 PDF를 선택하면 청구내역을 자동으로 정리합니다.</p>
     <nav class="steps" aria-label="변환 단계"><div id="step1" class="step active"><span class="n">1</span>PDF 선택</div><div class="step-line"></div><div id="step2" class="step"><span class="n">2</span>내역 확인</div><div class="step-line"></div><div id="step3" class="step"><span class="n">3</span>PDF 저장</div></nav>
@@ -28,11 +28,11 @@
       <details id="reviewBox" class="review-box" hidden><summary>화면에서 확인할 내용 <span id="warningCount"></span></summary><ul id="reviewList"></ul></details>
     </div>
   </main>
-  <footer><span>여비청구서 변환기 v0.3.0 · 로컬 PDF 문서 도구</span><span>원본 PDF는 변경하지 않습니다.</span></footer>
+  <footer><span>여비청구서 변환기 v0.3.1 · 로컬 PDF 문서 도구</span><span>원본 PDF는 변경하지 않습니다.</span></footer>
   <script>
     'use strict';
     const SESSION_TOKEN = '__SESSION_TOKEN__';
-    const APP_VERSION = '0.3.0';
+    const APP_VERSION = '0.3.1';
     const $ = id => document.getElementById(id);
     const moneyFields = ['daily_allowance','meal','lodging','transport','other','claim_amount'];
     const costFields = moneyFields.filter(field => field !== 'claim_amount');

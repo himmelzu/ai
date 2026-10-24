@@ -2,7 +2,7 @@
 """Build the portable Windows x64 application without requiring Windows.
 
 Downloads remain TLS verified. Archives are checked against hashes published by
-NuGet (Python), PyPI (PyMuPDF), and go.dev (Go) before use. No uploaded documents
+NuGet (Python), PyPI (PDF libraries), and conda-forge (Microsoft runtime) before use. No uploaded documents
 are included. Only the app/ source tree and explicitly prepared runtimes ship.
 """
 from __future__ import annotations
@@ -10,11 +10,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import shutil
-import subprocess
-import tarfile
 import urllib.request
 import zipfile
 
@@ -24,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / ".build"
 DOWNLOADS = CACHE / "downloads"
 STAGE = CACHE / "windows_payload"
-GO_VERSION = "1.25.3"
+PORTABLE = ROOT / "dist" / "TravelClaim-Portable"
+START_NAME = "여비청구서 시작.cmd"
 PYTHON = {
     "url": "https://api.nuget.org/v3-flatcontainer/python/3.12.10/python.3.12.10.nupkg",
     "filename": "python.3.12.10.nupkg",
@@ -42,12 +40,6 @@ FONTTOOLS = {
     "filename": "fonttools-4.61.1-py3-none-any.whl",
     "sha256": "17d2bf5d541add43822bcf0c43d7d847b160c9bb01d15d5007d84e2217aaa371",
     "source": "https://pypi.org/pypi/fonttools/4.61.1/json",
-}
-GO = {
-    "url": f"https://go.dev/dl/go{GO_VERSION}.linux-amd64.tar.gz",
-    "filename": f"go{GO_VERSION}.linux-amd64.tar.gz",
-    "sha256": "0335f314b6e7bfe08c3d0cfaa7c19db961b7b99fb20be62b0a826c992ad14e0f",
-    "source": "https://go.dev/dl/?mode=json&include=all",
 }
 
 
@@ -96,16 +88,6 @@ def safe_zip_extract(archive: Path, destination: Path, prefix: str = "") -> None
                     shutil.copyfileobj(source, output)
 
 
-def prepare_go(archive: Path) -> Path:
-    location = CACHE / f"go-{GO_VERSION}"
-    executable = location / "go" / "bin" / "go"
-    if not executable.is_file():
-        location.mkdir(parents=True, exist_ok=True)
-        with tarfile.open(archive, "r:gz") as source:
-            source.extractall(location, filter="data")
-    return executable
-
-
 def copy_app() -> None:
     app = ROOT / "app"
     for required in [app / "backend.py", app / "index.html"]:
@@ -126,35 +108,51 @@ def add_windows_runtime(runtime: Path) -> None:
     shutil.copy2(runtime / "BUILD-MANIFEST.json", STAGE / "licenses" / "WindowsVC" / "BUILD-MANIFEST.json")
 
 
-def make_payload() -> Path:
-    payload = ROOT / "launcher" / "payload.zip"
-    with zipfile.ZipFile(payload, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        for path in sorted(STAGE.rglob("*")):
-            if path.is_file():
-                name = path.relative_to(STAGE).as_posix()
-                info = zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0))
-                info.compress_type = zipfile.ZIP_DEFLATED
-                info.external_attr = 0o100600 << 16
-                archive.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
-    return payload
+def write_start_script() -> None:
+    # All commands are plain text. The runtime is already present in the ZIP;
+    # this script does not extract, install, elevate, hide or copy executables.
+    lines = [
+        "@echo off",
+        "setlocal EnableExtensions DisableDelayedExpansion",
+        'pushd "%~dp0"',
+        "if errorlevel 1 (",
+        "  echo Cannot open the program folder.",
+        "  pause",
+        "  exit /b 1",
+        ")",
+        'if not exist "python\\python.exe" (',
+        "  echo Python runtime is missing. Extract the whole ZIP into one folder.",
+        "  popd",
+        "  pause",
+        "  exit /b 1",
+        ")",
+        '"python\\python.exe" -B -X utf8 -E -s "app\\backend.py" --desktop',
+        'set "TRAVELCLAIM_EXIT_CODE=%ERRORLEVEL%"',
+        "popd",
+        'if not "%TRAVELCLAIM_EXIT_CODE%"=="0" (',
+        "  echo The application stopped with an error. Read the console details above.",
+        "  pause",
+        ")",
+        "exit /b %TRAVELCLAIM_EXIT_CODE%",
+    ]
+    (STAGE / START_NAME).write_bytes(("\r\n".join(lines) + "\r\n").encode("ascii"))
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--prepare-only", action="store_true", help="Verify Python, PyMuPDF, fontTools, Microsoft C++ runtime and Linux Go")
+    parser.add_argument("--prepare-only", action="store_true", help="Verify Python, PyMuPDF, fontTools and Microsoft C++ runtime archives")
     args = parser.parse_args()
-    archives = {"python": download(PYTHON), "pymupdf": download(PYMUPDF), "fonttools": download(FONTTOOLS), "go": download(GO)}
-    go = prepare_go(archives["go"])
+    archives = {"python": download(PYTHON), "pymupdf": download(PYMUPDF), "fonttools": download(FONTTOOLS)}
     windows_runtime = prepare_runtime()
     if args.prepare_only:
-        print(f"Verified build prerequisites ready; Go: {go}")
+        print("Verified portable-folder prerequisites; no custom launcher compilation is used.")
         return
     if STAGE.exists():
         shutil.rmtree(STAGE)
     STAGE.mkdir(parents=True)
     safe_zip_extract(archives["python"], STAGE / "python", "tools/")
-    # NuGet's full stdlib is retained: the local UI needs socket, HTTP and SSL.
-    # Developer-only headers, static libraries and pip are unnecessary at runtime.
+    # Retain the official stdlib needed by the local HTTP interface; omit only
+    # development headers, static libraries and command-line packaging tools.
     for path in [STAGE / "python" / "include", STAGE / "python" / "libs", STAGE / "python" / "Tools", STAGE / "python" / "Scripts"]:
         if path.exists():
             shutil.rmtree(path)
@@ -162,35 +160,28 @@ def main() -> None:
     safe_zip_extract(archives["fonttools"], STAGE / "python" / "Lib" / "site-packages")
     copy_app()
     add_windows_runtime(windows_runtime)
+    write_start_script()
+    files = {path.relative_to(STAGE).as_posix(): sha256(path)
+             for path in sorted(STAGE.rglob("*")) if path.is_file()}
     manifest = {
-        "platform": "windows-amd64", "python": PYTHON, "pymupdf": PYMUPDF,
-        "fonttools": FONTTOOLS, "go": GO, "vc_runtime": VC_RUNTIME, "source_files": {},
+        "platform": "windows-amd64", "distribution": "portable-folder", "entrypoint": START_NAME,
+        "python": PYTHON, "pymupdf": PYMUPDF, "fonttools": FONTTOOLS, "vc_runtime": VC_RUNTIME,
+        "source_files": {name: digest for name, digest in files.items() if name.startswith("app/")},
+        "runtime_files": files,
+        "pe_files": {name: digest for name, digest in files.items() if Path(name).suffix.lower() in (".exe", ".dll", ".pyd")},
     }
-    for path in sorted((STAGE / "app").rglob("*")):
-        if path.is_file():
-            manifest["source_files"][path.relative_to(STAGE).as_posix()] = sha256(path)
     (STAGE / "build-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    payload = make_payload()
-    dist = ROOT / "dist"
-    dist.mkdir(exist_ok=True)
-    executable = dist / "여비청구서변환기.exe"
-    candidate = CACHE / "windows-launcher.exe"
-    environment = os.environ.copy()
-    environment.update({
-        "GOOS": "windows", "GOARCH": "amd64", "CGO_ENABLED": "0",
-        "GOTOOLCHAIN": "local", "GOCACHE": str(CACHE / "go-cache"),
-        "GOMODCACHE": str(CACHE / "go-mod-cache"),
-    })
-    subprocess.run([str(go), "build", "-trimpath", "-buildvcs=false", "-ldflags=-H=windowsgui -s -w", "-o", str(candidate), "."],
-                   cwd=ROOT / "launcher", env=environment, check=True)
     for relative, expected in manifest["source_files"].items():
         current = ROOT / relative
         if not current.is_file() or sha256(current) != expected:
-            raise RuntimeError(f"Application source changed during packaging: {relative}. Rebuild after edits finish.")
-    candidate.replace(executable)
-    print(f"Payload {payload.stat().st_size / 1024**2:.1f} MiB")
-    print(f"Built {executable} ({executable.stat().st_size / 1024**2:.1f} MiB)")
-    print(f"SHA256 {sha256(executable)}")
+            raise RuntimeError(f"Application source changed during preparation: {relative}. Rebuild after edits finish.")
+    if PORTABLE.exists():
+        shutil.rmtree(PORTABLE)
+    shutil.copytree(STAGE, PORTABLE)
+    print(f"Prepared {PORTABLE}")
+    print(f"Entrypoint: {START_NAME} (plain CMD; official Python runtime)")
+    print(f"Runtime files: {len(files)}; PE files: {len(manifest['pe_files'])}")
+    print(f"Python SHA256: {sha256(PORTABLE / 'python/python.exe')}")
 
 
 if __name__ == "__main__":

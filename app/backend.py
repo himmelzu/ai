@@ -19,7 +19,7 @@ from renderer import recalculate, render_pdf
 
 MAX_PDF = 20 * 1024 * 1024
 MAX_REQUEST = 29 * 1024 * 1024
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.3.1"
 
 
 def failure_details(exc, route):
@@ -41,7 +41,7 @@ def failure_details(exc, route):
         f"Exception: {type(exc).__name__}",
         *frames[-10:],
     ])
-    # The launcher's local startup log receives only the same safe diagnostic.
+    # The local console receives only the same safe diagnostic.
     # In particular, don't print traceback source lines, locals or exc.__str__().
     try:
         print(json.dumps({"diagnostics": details}, ensure_ascii=True), file=sys.stderr, flush=True)
