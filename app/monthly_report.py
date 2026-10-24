@@ -1,14 +1,11 @@
-"""Read the 18-column monthly travel report without inventing missing fields.
+"""Extract supported personal and monthly travel-list text PDFs locally.
 
-PDF text extraction is local. The optional image path uses the same local OCR
-engine as the screenshot reader. Employee identifiers are never returned.
-Supported PDF exports follow the user's approved-trips-only export policy;
-the same approval assumption does not apply to screenshots.
+Personal exports contain separate requested and confirmed rows: only confirmed
+rows supply actual times and approval status. Employee identifiers are omitted.
 """
 from __future__ import annotations
 
 import base64
-import bisect
 from datetime import datetime
 import re
 
@@ -150,60 +147,258 @@ def _parse_cells(cells, ordinal):
     return trip, notes
 
 
-def _result(trips, warnings, filename, *, image=False):
-    if not trips:
-        raise ValueError("월별집계 표에서 출장 내역을 찾지 못했습니다. 소계·총계만 있는 빈 목록인지 확인해 주세요.")
-    if image:
-        warnings.insert(0, "월별집계 캡처에는 결재상태가 없습니다. 결재완료로 자동 표시하지 않았으니 지급대상을 별도로 확인해 주세요.")
+_PERSONAL_HEADERS = {0: "순번", 1: "구분", 3: "출발일자", 4: "도착일자",
+                     5: "총출장시간", 6: "출장지", 7: "차량", 8: "출장목적",
+                     9: "소속", 10: "출장자", 14: "결재상태", 15: "여비등급"}
+
+
+def _personal_header_score(cells):
+    if len(cells) != 18:
+        return 0
+    return sum(label in _compact(cells[index]) for index, label in _PERSONAL_HEADERS.items())
+
+
+def _point(value):
+    dates, times = _dates(value), _times(value)
+    return (dates[0] if len(dates) == 1 else "", times[0] if len(times) == 1 else "")
+
+
+def _personal_row(cells):
+    return (len(cells) == 18 and re.fullmatch(r"\d{1,4}", _clean(cells[0]))
+            and _compact(cells[2]) in ("신청", "확인"))
+
+
+def _personal_trip(cells, ordinal, requested=None, *, confirmed=True):
+    notes = []
+    department = _unwrap(cells[9])
+    name = _name(cells[10])
+    # This export has no rank column. Never infer one from department or name.
+    rank = ""
+    if confirmed:
+        start, start_time = _point(cells[3])
+        end, end_time = _point(cells[4])
     else:
-        warnings.insert(0, "PDF 입력은 시스템에서 결재완료된 출장만 내려받은 월별집계로 간주하여 결재상태를 '결재완료'로 적용했습니다.")
-    warnings.insert(0, "일비·청구액은 인식 후 화면의 지급기준으로 다시 계산하므로 원본 금액과 다를 수 있습니다. 지급기준과 결과를 확인해 주세요.")
-    if image:
-        warnings.insert(0, "월별집계 캡처 OCR 결과입니다. 성명·실제 출장일시·차량·경비를 원본과 대조해 주세요.")
-    return {"trips": trips, "warnings": list(dict.fromkeys(warnings)),
-            "input_kind": "image" if image else "pdf",
-            "approval_policy": "from_image" if image else "source_system_approved_export",
-            "source_name": re.split(r"[/\\]", str(filename))[-1] or ("capture.png" if image else "report.pdf")}
+        start = end = start_time = end_time = ""
+    scope_text = _compact(cells[1])
+    scope = "관내" if scope_text in ("근무지내", "관내") else "관외" if scope_text in ("근무지외", "관외") else ""
+    car = _compact(cells[7]).lower()
+    vehicle = ("unused" if car in ("미사용", "미이용", "사용안함", "n", "x") else
+               "used" if car in ("사용", "이용", "y", "o") else "unknown") if confirmed else "unknown"
+    status = _compact(cells[14]) if confirmed else "확인내역없음"
+    # The user's old monthly export had no status column. This personal export
+    # does: its actual confirmation status overrides the requested row's status.
+    approved = status == "결재완료"
+    supported = bool(confirmed and approved and scope == "관내" and start and end and start == end)
+    if not confirmed:
+        notes.append(f"{ordinal}행: 신청 내역만 있고 확인 내역이 없어 청구 대상에서 제외했습니다. 신청시각을 실제시각으로 대신하지 않았습니다.")
+    elif not approved:
+        notes.append(f"{ordinal}행: 확인 내역의 결재상태가 결재완료가 아니어서 청구 대상에서 제외했습니다.")
+    if confirmed and not all((start, end, start_time, end_time)):
+        notes.append(f"{ordinal}행: 확인 내역의 실제 출발·도착 일시가 불완전합니다. 원본과 대조해 주세요.")
+    if confirmed and (scope != "관내" or not start or not end or start != end):
+        notes.append(f"{ordinal}행: 관외·여러 날 출장 또는 날짜 미확인 내역은 기본 청구 대상에서 제외했습니다.")
+    if confirmed and vehicle == "unknown":
+        notes.append(f"{ordinal}행: 확인 내역의 공용차량 사용 여부를 확인해 주세요.")
+    if not department or not name:
+        notes.append(f"{ordinal}행: 소속 또는 성명이 비어 있습니다. 원본과 대조해 주세요.")
+    original_expenditure, original_allowance = _amount(cells[11]), _amount(cells[12])
+    # This report gives no separate meal/lodging/transport/other expense cells.
+    # For a zero-valued source, initialize the new local daily-allowance claim's
+    # additional expenses to zero. Nonzero/unknown source sums need item review.
+    zero_expenses = original_expenditure == 0 and original_allowance == 0
+    expenses = 0 if zero_expenses else None
+    if not zero_expenses:
+        notes.append(f"{ordinal}행: 원본 지출·여비에 금액이 있거나 읽지 못한 값이 있습니다. 세부 경비를 확인해 입력해 주세요.")
+    trip = {
+        "department": department, "rank": rank, "name": name,
+        "start_date": start, "end_date": end, "start_time": start_time, "end_time": end_time,
+        "scope": scope, "vehicle": vehicle, "destination": _unwrap(cells[6]), "purpose": _unwrap(cells[8]),
+        "daily_allowance": None, "meal": expenses, "lodging": expenses,
+        "transport": expenses, "other": expenses, "claim_amount": None,
+        "approval_status": status, "include": supported, "ocr_warnings": notes,
+    }
+    if requested is None and not confirmed:
+        requested = cells
+    if requested is not None:
+        requested_start, requested_start_time = _point(requested[3])
+        requested_end, requested_end_time = _point(requested[4])
+        trip.update(requested_start_date=requested_start, requested_end_date=requested_end,
+                    requested_start_time=requested_start_time, requested_end_time=requested_end_time)
+    return trip, notes
+
+
+def _personal_trips(rows):
+    trips, warnings = [], []
+    pending = None
+    previous_number = None
+    confirmations = application_only = 0
+
+    def append(cells, requested=None, confirmed=True):
+        trip, notes = _personal_trip(cells, len(trips) + 1, requested, confirmed=confirmed)
+        trips.append(trip)
+        warnings.extend(notes)
+
+    for cells in rows:
+        number = int(_clean(cells[0]))
+        if previous_number is not None and number <= previous_number:
+            raise ValueError("출장 내역 순번이 중복되거나 순서가 바뀌어 있습니다. 개인별 내역 PDF를 다시 내려받아 주세요.")
+        previous_number = number
+        kind = _compact(cells[2])
+        if kind == "신청":
+            if pending is not None:
+                append(pending, confirmed=False)
+                application_only += 1
+            pending = cells
+            continue
+        matched = (pending is not None and int(_clean(pending[0])) + 1 == number
+                   and _name(pending[10]) == _name(cells[10])
+                   and _unwrap(pending[9]) == _unwrap(cells[9]))
+        if pending is not None and not matched:
+            append(pending, confirmed=False)
+            application_only += 1
+        append(cells, pending if matched else None)
+        confirmations += 1
+        pending = None
+    if pending is not None:
+        append(pending, confirmed=False)
+        application_only += 1
+    return trips, warnings, {"source_rows": len(rows), "trip_count": len(trips),
+                             "confirmation_count": confirmations, "application_only_count": application_only,
+                             "excluded_count": sum(not trip["include"] for trip in trips)}
+
+
+def _result(trips, warnings, filename, input_format, source_summary):
+    if not trips:
+        raise ValueError("PDF 표에서 출장 내역을 찾지 못했습니다. 빈 목록인지 확인해 주세요.")
+    personal = input_format == "personal_trip_list"
+    if personal:
+        warnings.insert(0, "신청·확인 두 줄을 한 출장으로 합쳤으며 실제 출발·도착 시각과 결재상태는 확인 내역에서 읽었습니다.")
+        warnings.insert(0, "개인별 내역에는 직급이 없어 비워 두었습니다. 별도 경비는 원본 지출·여비가 0인 행에 한해 0원으로 시작하며 필요 시 추가할 수 있습니다.")
+    else:
+        warnings.insert(0, "월별집계 PDF는 시스템에서 결재완료된 출장만 내려받은 자료로 간주하여 결재상태를 결재완료로 적용했습니다.")
+    warnings.insert(0, "일비·청구액은 화면의 지급기준으로 계산하므로 원본 금액과 다를 수 있습니다.")
+    return {"trips": trips, "warnings": list(dict.fromkeys(warnings)), "input_kind": "pdf",
+            "input_format": input_format, "source_summary": source_summary,
+            "approval_policy": "source_confirmation_status" if personal else "source_system_approved_export",
+            "source_name": re.split(r"[/\\]", str(filename))[-1] or "report.pdf"}
+
+
+def _table_signature(table, page_width):
+    for row in table.rows:
+        if len(row.cells) == 18 and all(cell is not None for cell in row.cells):
+            return [(cell[0] / page_width, cell[2] / page_width) for cell in row.cells]
+    return None
+
+
+def _same_table(left, right):
+    return bool(left and right and len(left) == len(right)
+                and all(abs(a - b) <= .005 for pair, other in zip(left, right) for a, b in zip(pair, other)))
+
+
+def _travel_like_text(text, schema):
+    """Identify uncollected travel data, not ordinary footer/date metadata."""
+    if len(_dates(text)) < 2 or len(_times(text)) < 2:
+        return False
+    compact = _compact(text)
+    if not any(label in compact for label in ("근무지내", "근무지외", "관내", "관외")):
+        return False
+    if schema == "personal_trip_list":
+        return "신청" in compact or "확인" in compact
+    return "사용" in compact or "이용" in compact
+
+
+def _incomplete_table():
+    return ValueError("다음 페이지 또는 일부 출장 표를 읽지 못했습니다. 내역 누락 방지를 위해 변환을 중단했습니다. 원본 PDF를 다시 내려받아 주세요.")
 
 
 def parse_pdf(pdf_bytes: bytes, filename: str = "report.pdf") -> dict:
-    """Extract supported monthly-report PDF cells; no password bypass or upload."""
+    """Extract supported text PDF tables without bypassing password protection."""
     if not pdf_bytes or len(pdf_bytes) > 20 * 1024 * 1024:
-        raise ValueError("20MB 이하의 월별집계 PDF를 선택해 주세요.")
+        raise ValueError("20MB 이하의 출장 내역 PDF를 선택해 주세요.")
     try:
         document = fitz.open(stream=pdf_bytes, filetype="pdf")
     except Exception as exc:
         raise ValueError("PDF를 열 수 없습니다. 올바른 PDF 파일인지 확인해 주세요.") from exc
     try:
         if document.needs_pass:
-            raise ValueError("암호가 걸린 PDF는 읽을 수 없습니다. 접근 권한이 있는 원본에서 허용된 방법으로 내보낸 PDF 또는 캡처를 사용해 주세요.")
+            raise ValueError("암호가 걸린 PDF는 읽을 수 없습니다. 권한이 있는 시스템에서 허용된 방법으로 내보낸 PDF를 사용해 주세요.")
         if not 1 <= len(document) <= 30:
             raise ValueError("PDF는 1~30쪽까지 처리할 수 있습니다.")
-        trips, warnings = [], []
+        schema = None
+        signature = None
+        personal_rows = []
+        monthly_rows = []
         for page in document:
             textpage = page.get_textpage()
+            rows_before = len(personal_rows) + len(monthly_rows)
+            unsupported = []
+            collected_regions = []
             for table in page.find_tables().tables:
                 if table.col_count != 18:
+                    unsupported.append(fitz.Rect(table.bbox))
                     continue
                 rows = [[page.get_textbox(fitz.Rect(cell), textpage=textpage) if cell is not None else "" for cell in row.cells]
                         for row in table.rows]
-                if not rows or _header_score(rows[0]) < 7:
+                if not rows:
                     continue
-                for cells in rows[1:]:
-                    if not re.fullmatch(r"\s*\d{1,3}\s*", cells[0]):
-                        continue
-                    trip, notes = _parse_cells(cells, len(trips) + 1)
-                    trips.append(trip)
-                    warnings.extend(notes)
-                    if len(trips) > 500:
+                current_signature = _table_signature(table, page.rect.width)
+                detected = ("personal_trip_list" if _personal_header_score(rows[0]) >= 9 else
+                            "monthly_report" if _header_score(rows[0]) >= 7 else None)
+                if detected is not None:
+                    if schema is not None and schema != detected:
+                        raise ValueError("서로 다른 출장 표 형식이 한 PDF에 섞여 있습니다. 한 종류의 내역만 내려받아 주세요.")
+                    schema, signature = detected, current_signature
+                    body = rows[1:]
+                elif schema is not None and _same_table(signature, current_signature):
+                    body = rows
+                else:
+                    unsupported.append(fitz.Rect(table.bbox))
+                    continue
+                table_rows_before = len(personal_rows) + len(monthly_rows)
+                for cells in body:
+                    if schema == "personal_trip_list":
+                        if _personal_row(cells):
+                            personal_rows.append(cells)
+                        elif re.fullmatch(r"\s*\d{1,4}\s*", cells[0]):
+                            raise ValueError("개인별 내역의 신청·확인 구분을 읽을 수 없습니다. 원본 PDF를 확인해 주세요.")
+                        elif _travel_like_text(" ".join(cells), schema):
+                            raise _incomplete_table()
+                    elif re.fullmatch(r"\s*\d{1,3}\s*", cells[0]):
+                        monthly_rows.append(cells)
+                    elif _travel_like_text(" ".join(cells), schema):
+                        raise _incomplete_table()
+                    if len(personal_rows) > 1000 or len(monthly_rows) > 500:
                         raise ValueError("출장 내역은 500건까지 처리할 수 있습니다.")
-        if not trips:
-            raise ValueError("이 PDF에서 지원하는 18열 '출장 월별집계' 표를 찾지 못했습니다. 해당 목록의 PDF 또는 캡처를 넣어 주세요.")
-        # The user confirmed that the system exports only approved trips to
-        # this PDF. Keep this policy here, separate from shared image parsing.
-        for trip in trips:
-            trip["approval_status"] = "결재완료"
-        result = _result(trips, warnings, filename)
+                if len(personal_rows) + len(monthly_rows) > table_rows_before:
+                    collected_regions.append(fitz.Rect(table.bbox))
+            if schema is not None:
+                for region in unsupported:
+                    # Some table detectors return a fragment inside a complete
+                    # table too. Its data has already been collected above.
+                    if any(collected.contains(region) for collected in collected_regions):
+                        continue
+                    if _travel_like_text(page.get_textbox(region, textpage=textpage), schema):
+                        raise _incomplete_table()
+                if len(personal_rows) + len(monthly_rows) == rows_before:
+                    if _travel_like_text(page.get_text(textpage=textpage), schema):
+                        raise _incomplete_table()
+        if schema == "personal_trip_list":
+            trips, warnings, summary = _personal_trips(personal_rows)
+        elif schema == "monthly_report":
+            trips, warnings = [], []
+            for cells in monthly_rows:
+                trip, notes = _parse_cells(cells, len(trips) + 1)
+                trip["approval_status"] = "결재완료"
+                trips.append(trip)
+                warnings.extend(notes)
+            summary = {"source_rows": len(monthly_rows), "trip_count": len(trips),
+                       "confirmation_count": len(trips), "application_only_count": 0,
+                       "excluded_count": sum(not trip["include"] for trip in trips)}
+        else:
+            raise ValueError("지원하는 개인별 출장 내역 또는 출장 월별집계 표를 찾지 못했습니다. 시스템에서 내려받은 원본 PDF를 넣어 주세요.")
+        if len(trips) > 500:
+            raise ValueError("출장 내역은 500건까지 처리할 수 있습니다.")
+        result = _result(trips, warnings, filename, schema, summary)
         scale = min(1.8, 1600 / max(document[0].rect.width, 1))
         preview = document[0].get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False).tobytes("png")
         result["preview_data"] = base64.b64encode(preview).decode("ascii")
@@ -211,111 +406,3 @@ def parse_pdf(pdf_bytes: bytes, filename: str = "report.pdf") -> dict:
         return result
     finally:
         document.close()
-
-
-def _image_cells(words, xs, ys):
-    if __package__:
-        from .ocr_parser import _cell_text
-    else:
-        from ocr_parser import _cell_text
-    rows = [[[] for _ in range(len(xs) - 1)] for _ in range(len(ys) - 1)]
-    for word in words:
-        col = bisect.bisect_right(xs, word.left + word.width / 2) - 1
-        row = bisect.bisect_right(ys, word.top + word.height / 2) - 1
-        if 0 <= row < len(rows) and 0 <= col < len(xs) - 1:
-            rows[row][col].append(word)
-    return [[_cell_text(cell) for cell in row] for row in rows]
-
-
-def _recover_report_grid(pix):
-    """Keep the edges of shaded header bands instead of discarding the band.
-
-    Monthly PDFs have a dark gray header. A generic thin-line detector can
-    discard both header borders when that whole band falls below its threshold.
-    """
-    if __package__:
-        from .ocr_parser import _groups
-    else:
-        from ocr_parser import _groups
-    gray = fitz.Pixmap(fitz.csGRAY,pix)
-    raw,width,height=gray.samples,gray.width,gray.height
-    best = None
-    for threshold in (200,205,215,225):
-        dark=raw.translate(bytes(1 if i<threshold else 0 for i in range(256)))
-        groups=_groups([y for y in range(height) if dark[y*width:(y+1)*width].count(1)>=width*.68])
-        edges=[]
-        for group in groups:
-            if len(group)>max(4,height//150):
-                edges.extend((float(group[0]),float(group[-1])))
-            else:
-                edges.append(sum(group)/len(group))
-        if len(edges)<4:
-            continue
-        gaps=[b-a for a,b in zip(edges,edges[1:]) if b-a>3]
-        median=sorted(gaps)[len(gaps)//2]
-        # Retain a regular table block, not a remote footer rule.
-        stop=next((i+1 for i,(a,b) in enumerate(zip(edges,edges[1:])) if i>=2 and b-a>median*2.4),len(edges))
-        edges=edges[:stop]
-        if len(edges)<4:
-            continue
-        scores=[0]*width
-        for y in range(int(edges[0]),int(edges[-1])+1):
-            scores=[a+b for a,b in zip(scores,dark[y*width:(y+1)*width])]
-        count=int(edges[-1])-int(edges[0])+1
-        xgroups=[g for g in _groups([x for x,s in enumerate(scores) if s>=count*.72]) if len(g)<=max(5,width//150)]
-        xs=[sum(g)/len(g) for g in xgroups]
-        if len(xs)==19 and (best is None or len(edges)>len(best[1])):
-            best=(xs,edges)
-    return best
-
-
-def try_parse_monthly_image(pix, xs, ys, words, filename="capture.png"):
-    """Return None for other forms; accept only an unambiguous monthly layout."""
-    if len(xs) < 19 or len(ys) < 3:
-        return None
-    recovered_grid = _recover_report_grid(pix)
-    if recovered_grid and (recovered_grid[1][0] < ys[0]-3 or len(recovered_grid[1])>len(ys)):
-        xs,ys = recovered_grid
-    physical = _image_cells(words, xs, ys)
-    candidates = []
-    for offset in range(len(xs) - 18):
-        headers = [" ".join(row[offset + col] for row in physical[:2]) for col in range(18)]
-        score = _header_score(headers)
-        # Same-cell dates and times distinguish report actual periods from the
-        # UI's separate actual-time and requested-period columns.
-        body = [i for i, row in enumerate(physical)
-                if re.fullmatch(r"\s*\d{1,3}\s*", row[offset])
-                and len(_dates(row[offset + 3])) >= 2 and len(_times(row[offset + 3])) == 2]
-        strong = []
-        for index in body:
-            row = physical[index][offset:offset + 18]
-            valid_name = bool(re.search(r"[가-힣A-Za-z]{2}", _name(row[2])))
-            scope = _compact(row[5]) in ("근무지내", "근무지외", "관내", "관외")
-            car = _compact(row[6]).lower() in ("사용", "미사용", "이용", "미이용", "y", "n", "o", "x")
-            duration = bool(re.search(r"\d+\s*(?:시간|분|일)", row[4]))
-            money_count = sum(_amount(c) is not None for c in row[10:])
-            if valid_name and scope and car and duration and money_count >= 5:
-                strong.append(index)
-        # Labels are evidence, not a gate that rejects a whole readable body.
-        # Header recovery still requires several independent travel-only fields.
-        normal = score >= 6 and body
-        recovered = score >= 2 and len(strong) >= min(2, len(body)) and len(strong) >= len(body) * .6 and body
-        if normal or recovered:
-            candidates.append((score + len(strong) / max(1,len(body)), offset, min(body)))
-    if not candidates:
-        return None
-    candidates.sort(reverse=True)
-    if len(candidates) > 1 and candidates[0][0] == candidates[1][0]:
-        raise ValueError("월별집계 표의 열 배치가 여러 가지로 읽힙니다. 표 부분을 선명하게 잘라 다시 넣어 주세요.")
-    _, offset, first = candidates[0]
-    trips, warnings = [], []
-    for physical_row in physical[first:]:
-        cells = physical_row[offset:offset + 18]
-        if not re.fullmatch(r"\s*\d{1,3}\s*", cells[0]):
-            continue
-        trip, notes = _parse_cells(cells, len(trips) + 1)
-        trips.append(trip)
-        warnings.extend(notes)
-    if candidates[0][0] < 6:
-        warnings.append("월별집계의 일부 열 제목이 불분명해 표선과 출장일시·시간·차량·금액 열을 함께 확인하여 배치했습니다. 원본과 열 배치를 대조해 주세요.")
-    return _result(trips, warnings, filename, image=True)

@@ -1,4 +1,4 @@
-"""Reviewed travel records -> landscape A4 statement. No network access."""
+"""Travel records -> clean landscape A4 statement and on-screen warnings."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -54,7 +54,7 @@ def normalize_trip(raw):
     for key in MONEY_KEYS:
         trip[key] = money(raw.get(key), optional=True)
     trip["claim_amount"] = money(raw.get("claim_amount"), optional=True)
-    # Keep OCR provenance for on-screen review; never interpret it as instructions.
+    # Keep source parsing notes for on-screen review, never as instructions.
     trip["ocr_warnings"] = [str(w)[:300] for w in raw.get("ocr_warnings", [])][:20]
     return trip
 
@@ -75,7 +75,7 @@ def cost_total(trip):
 
 def trip_issues(trip):
     issues = []
-    for key, label in (("name", "성명"), ("department", "부서"), ("rank", "직급"),
+    for key, label in (("name", "성명"), ("department", "부서"),
                        ("destination", "출장지"), ("purpose", "출장목적")):
         if not trip[key]:
             issues.append(label + " 누락")
@@ -188,11 +188,10 @@ def render_pdf(raw_trips, *, rates=None, rates_confirmed=False, data_confirmed=F
         paid_by_day[key] = paid_by_day.get(key, 0) + trip["daily_allowance"]
     if any(value > active_rates["daily_cap"] for value in paid_by_day.values()):
         warnings.append("동일 직원·동일 날짜의 일비 합계가 설정한 일일 상한을 넘습니다. 일비를 다시 계산해 주세요.")
-    if not rates_confirmed:
-        warnings.append("기관 지급기준을 확인하지 않았습니다. 금액은 예시 기준으로 계산된 검토용입니다.")
-    if not data_confirmed:
-        warnings.append("OCR 인식 내용 및 지급대상 확인이 완료되지 않았습니다.")
-    draft = bool(warnings)
+    # Legacy confirmation arguments remain accepted for API compatibility.
+    # Warnings belong in the application; they do not change the document's
+    # title, filename, or printed appearance.
+    needs_review = bool(warnings)
     fontpath = Path(__file__).parent / "fonts" / "NotoSansCJKkr-Regular.otf"
     font = fitz.Font(fontfile=str(fontpath))
     document = fitz.open()
@@ -214,7 +213,8 @@ def render_pdf(raw_trips, *, rates=None, rates_confirmed=False, data_confirmed=F
         end = (trip["end_date"] + " " + trip["end_time"]).strip() or "확인 필요"
         total = cost_total(trip)
         fmt = lambda v: "확인 필요" if v is None else (f"{v:,}" if v else "-")
-        cells = [str(index), trip["department"] + "/\n" + trip["rank"], trip["name"], start + "\n~ " + end,
+        identity = "/\n".join(value for value in (trip["department"], trip["rank"]) if value)
+        cells = [str(index), identity, trip["name"], start + "\n~ " + end,
                  duration_text, trip["scope"], {"used":"사용", "unused":"미사용"}.get(trip["vehicle"], "확인 필요"),
                  trip["destination"], trip["purpose"], *[fmt(trip[k]) for k in MONEY_KEYS],
                  fmt(total), fmt(trip["claim_amount"]), ""]
@@ -247,8 +247,6 @@ def render_pdf(raw_trips, *, rates=None, rates_confirmed=False, data_confirmed=F
         page=document.new_page(width=width,height=height)
         page.insert_font(fontname="kr",fontfile=str(fontpath))
         text_box(page,fitz.Rect(left,23,right,53),"여 비 지 급 명 세 서",19)
-        label="검토용 · OCR 인식 내용 및 지급기준 확인 필요" if draft else "확인된 출장 내역"
-        text_box(page,fitz.Rect(left,55,right,72),label,8,color=(0.65,0.25,0.06) if draft else (0.18,0.33,0.3))
         y=79
         header_bottom=y+33
         for i,header in enumerate(headers):
@@ -284,8 +282,8 @@ def render_pdf(raw_trips, *, rates=None, rates_confirmed=False, data_confirmed=F
             all_total=sum(t[k] or 0 for t in selected for k in MONEY_KEYS)
             missing=any(cost_total(t) is None for t in selected)
             text_box(page,fitz.Rect(left,y+29,right,y+46),f"전체 {len(selected)}건 · 전체 경비 합계: "+("확인 필요" if missing else f"{all_total:,}원"),9)
-        text_box(page,fitz.Rect(left,height-38,right,height-23),f"{page_number} / {len(batches)}   ·   캡처 인식 후 확인하여 작성",7,color=(0.4,0.44,0.43))
-    document.set_metadata({"title":"여비지급명세서"+(" (검토용)" if draft else ""),"producer":"여비청구서 변환기"})
+        text_box(page,fitz.Rect(left,height-38,right,height-23),f"{page_number} / {len(batches)}",7,color=(0.4,0.44,0.43))
+    document.set_metadata({"title":"여비지급명세서","producer":"여비청구서 변환기"})
     # Subsetting reduces the full Korean typeface by roughly 13 MB, but a
     # temporary-folder restriction must not prevent saving a complete PDF.
     try:
@@ -294,4 +292,5 @@ def render_pdf(raw_trips, *, rates=None, rates_confirmed=False, data_confirmed=F
         document.close()
     if font_optimization_skipped:
         warnings.append("이 환경에서는 글꼴 용량 줄이기를 생략했습니다. 내용과 금액은 그대로이며 PDF 파일 크기가 클 수 있습니다.")
-    return payload,{"is_draft":draft,"warnings":warnings,"count":len(selected)}
+    return payload,{"needs_review":needs_review,"is_draft":needs_review,
+                    "warnings":warnings,"count":len(selected)}

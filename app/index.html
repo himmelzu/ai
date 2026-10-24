@@ -6,437 +6,152 @@
   <meta name="color-scheme" content="light">
   <title>여비청구서 변환기</title>
   <style>
-    :root{--ink:#172e3b;--muted:#627783;--teal:#126e68;--teal-dark:#0c5551;--line:#dce6e8;--paper:#fff;--bg:#f3f6f7;--amber:#875916;--amber-bg:#fff7e8;--red:#a02e37;--shadow:0 5px 24px #1b36400a}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Malgun Gothic","맑은 고딕","Segoe UI",sans-serif;font-size:14px;line-height:1.6}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.5}button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid #79bdb6;outline-offset:3px}button:focus:not(:focus-visible){outline:none}.masthead{background:var(--ink);color:#fff}.masthead-inner{max-width:1460px;margin:auto;padding:21px 34px;display:flex;gap:14px;align-items:center}.brand-icon{width:40px;height:40px;display:grid;place-items:center;border:1px solid #ffffff30;border-radius:11px;color:#9ae0d3}.brand{font-size:18px;font-weight:700;letter-spacing:-.6px}.brand-sub{font-size:11px;letter-spacing:1.5px;color:#b8cbd0}.masthead-spacer{flex:1}.local-badge{display:flex;align-items:center;gap:7px;color:#d5e9e4;font-size:12px}.local-badge:before{content:"";width:6px;height:6px;border-radius:50%;background:#8bd6c0}.exit-btn{margin-left:15px;background:transparent;border:1px solid #ffffff35;color:#e3ebee;padding:6px 14px;border-radius:6px;font-size:12px}main{max-width:1460px;padding:36px 34px 24px;margin:auto}.eyebrow{font-size:11px;letter-spacing:1.4px;color:var(--teal);font-weight:700;margin:0 0 5px}h1{font-size:29px;letter-spacing:-1px;line-height:1.35;margin:0 0 9px}p{margin:0}.intro-text{color:var(--muted);font-size:14px}.steps{display:flex;align-items:center;gap:22px;margin:26px 0 22px}.step{display:flex;gap:8px;align-items:center;color:#7a8b94;font-size:12px;white-space:nowrap}.step .n{width:23px;height:23px;display:grid;place-items:center;border:1px solid #ccd9de;border-radius:50%;font-size:11px}.step.active{color:var(--teal);font-weight:700}.step.active .n{background:var(--teal);border-color:var(--teal);color:white}.step-line{height:1px;background:var(--line);width:48px}.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.upload{padding:24px;display:flex;align-items:center;gap:20px;border:1px dashed #a9c7c6;transition:background .15s,border-color .15s}.upload.drag{background:#e9f6f2;border-color:var(--teal)}.upload-symbol{width:53px;height:60px;flex:none;border:1px solid #d9e8e5;border-radius:9px;background:#f3faf7;display:grid;place-items:center;color:var(--teal)}.upload-copy{flex:1;min-width:0}.upload-copy strong{display:block;font-size:16px;letter-spacing:-.3px}.upload-copy p{font-size:12px;margin-top:3px;color:var(--muted)}.primary,.secondary{border:1px solid transparent;border-radius:7px;padding:10px 17px;font-size:13px;font-weight:700;white-space:nowrap}.primary{background:var(--teal);color:#fff}.primary:hover:not(:disabled){background:var(--teal-dark)}.secondary{background:#fff;color:var(--ink);border-color:#cfdcdf}.secondary:hover:not(:disabled){background:#f2f7f7}.small{padding:6px 11px;font-size:12px}.notice{margin-top:15px;padding:11px 14px;border-radius:7px;border:1px solid #d6e7e3;background:#eef7f4;color:#3f665e;font-size:12px;display:flex;gap:9px}.notice-icon{font-size:14px;font-weight:700;flex:none}.message{margin-top:16px;padding:12px 15px;border-radius:7px;font-size:13px;white-space:pre-line;overflow-wrap:anywhere}.message.error{border:1px solid #ebc7ca;background:#fff1f2;color:var(--red)}.message.success{border:1px solid #c6e2d7;background:#edf8f2;color:#235f43}.message.loading{border:1px solid #d1e1e6;background:#edf5f8;color:#335d70}.spinner{display:inline-block;width:12px;height:12px;margin-right:8px;border:2px solid #8cb9c6;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-1px}@keyframes spin{to{transform:rotate(360deg)}}[hidden]{display:none!important}.workspace{margin-top:24px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:19px}.metric{padding:17px 21px}.metric-label{font-size:12px;color:var(--muted);display:block}.metric-value{font-size:27px;font-weight:700;letter-spacing:-.8px;line-height:1.3;display:block;margin-top:5px}.metric-value small{font-size:13px;color:var(--muted);font-weight:400;letter-spacing:0;margin-left:4px}.metric-value.amber{color:var(--amber)}.metric-value.teal{color:var(--teal)}.table-panel{overflow:hidden}.section-header{display:flex;align-items:center;gap:12px;padding:19px 21px 15px;border-bottom:1px solid var(--line)}h2{font-size:16px;margin:0;letter-spacing:-.4px}.source-name{font-size:12px;color:var(--muted);max-width:440px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.section-header .spacer{flex:1}.count-badge{font-size:11px;color:var(--teal);background:#e9f4f1;padding:2px 8px;border-radius:4px;white-space:nowrap}.table-hint{padding:10px 21px;font-size:11px;color:var(--muted);background:#fbfcfc;border-bottom:1px solid var(--line)}.table-wrap{overflow:auto;max-height:530px;overscroll-behavior:contain;scrollbar-color:#b9ccce #eef3f4}.trips-table{border-collapse:separate;border-spacing:0;width:100%;min-width:2550px;table-layout:fixed;font-size:12px}.trips-table th{position:sticky;top:0;z-index:2;background:#eef3f4;border-bottom:1px solid #cddcdf;padding:11px 8px;font-size:11px;font-weight:700;color:#526d78;text-align:left;white-space:nowrap}.trips-table td{border-bottom:1px solid #e7edef;padding:9px 6px;vertical-align:top}.trips-table tr:last-child td{border-bottom:0}.trips-table tbody tr:hover td{background:#fbfdfd}.trips-table th:first-child,.trips-table td:first-child{position:sticky;left:0;z-index:1;background:#fff;text-align:center;border-right:1px solid #e7edef}.trips-table th:first-child{z-index:3;background:#eef3f4}.trips-table input,.trips-table select{width:100%;padding:7px 6px;border:1px solid #d8e2e5;border-radius:5px;background:white;color:var(--ink);min-height:33px;font-size:12px;line-height:1.4}.trips-table input[type=number]{text-align:right;font-variant-numeric:tabular-nums;appearance:textfield;-moz-appearance:textfield}.trips-table input::-webkit-inner-spin-button,.trips-table input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.trips-table .needs-check{border-color:#d9b775;background:#fffcf6}.trips-table .invalid{border-color:#cb6a74;background:#fff4f4}.date-line{display:flex;gap:5px;margin-top:5px}.date-line:first-child{margin-top:0}.date-line input[type=date]{flex:1;min-width:118px}.date-line input[type=time]{width:91px}.stack{display:grid;gap:5px}.row-n{font-weight:700;color:#5b717b;padding-top:10px}.row-state{font-size:9px;color:var(--amber);margin-top:6px;line-height:1.4}.duration{display:block;color:var(--muted);font-size:10px;margin-top:5px;text-align:center}.row-total{font-variant-numeric:tabular-nums;text-align:right;font-size:12px;color:#536e78;display:block;padding:7px 5px}.editor-bottom{border-top:1px solid var(--line);padding:12px 21px;font-size:11px;display:flex;justify-content:space-between;gap:15px;color:var(--muted)}.review-box{margin-top:16px;padding:14px 17px;background:var(--amber-bg);border:1px solid #e9d8b7;border-radius:8px;color:var(--amber);font-size:12px}.review-box strong{font-size:12px;display:block;margin-bottom:3px}.review-box ul{margin:4px 0 0;padding-left:18px}.review-box li+li{margin-top:3px}.export-panel{margin-top:19px;padding:19px 21px;display:flex;align-items:flex-end;gap:17px}.export-fields{display:flex;gap:12px;flex:1;flex-wrap:wrap}.field-label{display:block;color:#506874;font-size:11px;font-weight:700;margin-bottom:6px}.export-field{flex:1;max-width:270px;min-width:165px}.export-field input{width:100%;height:39px;border:1px solid #ccdadd;border-radius:6px;padding:8px 10px;color:var(--ink);background:#fff;font-size:13px}.export-note{font-size:11px;color:var(--muted);padding-top:11px}.export-button{display:flex;align-items:center;gap:9px;padding:11px 21px}.empty{margin-top:22px;padding:39px 24px;text-align:center;color:#7b8d96;font-size:12px;background:#ffffff70;border:1px solid var(--line);border-radius:10px}.empty strong{display:block;font-size:14px;font-weight:500;color:#516c78;margin-bottom:5px}footer{max-width:1460px;margin:auto;padding:0 34px 25px;color:#84949c;font-size:11px;display:flex;justify-content:space-between;gap:20px}.export-mark{font-size:11px;color:var(--muted)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:780px){.masthead-inner{padding:17px 19px}.brand{font-size:16px}.brand-sub{font-size:9px}.local-badge{display:none}.exit-btn{margin-left:0}main{padding:27px 18px 20px}h1{font-size:25px}.intro-text{font-size:12px}.steps{gap:12px}.step-line{width:20px}.step{font-size:11px}.upload{padding:19px;gap:13px;flex-wrap:wrap}.upload-symbol{width:42px;height:48px}.upload-copy strong{font-size:14px}.upload-copy p{font-size:11px}.upload>.primary{width:100%}.metrics{gap:8px}.metric{padding:14px 12px}.metric-label{font-size:10px}.metric-value{font-size:24px}.section-header{flex-wrap:wrap;padding:16px}.source-name{max-width:calc(100% - 30px);order:3;width:100%}.table-hint{padding:10px 16px}.export-panel{align-items:stretch;flex-direction:column;padding:17px}.export-field{max-width:none;min-width:120px}.export-button{justify-content:center}.editor-bottom{padding:12px 15px;flex-direction:column;gap:4px}footer{padding:0 18px 20px;flex-direction:column;gap:4px}}@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
-  .image-preview{margin-top:15px;overflow:hidden}.image-preview summary{cursor:pointer;padding:12px 16px;font-size:12px;font-weight:700}.image-preview summary span{font-size:11px;font-weight:400;color:var(--muted);margin-left:10px}.image-preview img{display:block;max-width:100%;max-height:450px;width:auto;margin:auto;padding:0 12px 12px;object-fit:contain}.rates-panel{margin-bottom:18px;padding:18px 21px}.rates-heading{display:flex;align-items:flex-start;gap:15px;justify-content:space-between}.rates-heading p{font-size:11px;color:var(--muted);margin-top:5px}.rates-fields{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:16px}.rates-fields input{width:100%;height:36px;border:1px solid #ccdadd;border-radius:5px;padding:7px 9px;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}.rates-note{font-size:11px;color:var(--muted);margin-top:10px}.confirmations{padding:17px 21px;margin-top:18px}.confirmations label{display:flex;align-items:flex-start;gap:9px;font-size:13px;cursor:pointer}.confirmations label+label{margin-top:11px}.confirmations input{accent-color:var(--teal);width:16px;height:16px;margin:3px 0 0;flex:none}.confirmations p{font-size:11px;color:var(--muted);margin-top:10px}.include-checkbox{width:16px!important;min-height:16px!important;height:16px;margin:0;accent-color:var(--teal)}.excluded td:not(:first-child){opacity:.4}.approval-pill{display:block;padding:6px 3px;font-size:11px;overflow-wrap:anywhere}.approval-pill.pending{color:var(--amber)}.requested-time{font-size:10px;line-height:1.6;color:var(--muted);margin-top:6px}.trips-table{min-width:2200px}.dirty-note{color:var(--amber)!important}@media(max-width:780px){.rates-panel{padding:17px}.rates-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.rates-heading{flex-direction:column}.rates-heading button{align-self:flex-end}.confirmations{padding:17px}.confirmations label{font-size:12px}}
-  .preview-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:0 16px 12px}.preview-status{flex:1;min-width:180px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.preview-status.failed{color:var(--red)}.preview-file-name{overflow-wrap:anywhere}.preview-toolbar .secondary{font-size:11px;padding:6px 10px}
-  .pdf-placeholder{margin:0 16px 16px;padding:26px 16px;border:1px dashed #ccdadd;border-radius:7px;background:#f7fafb;text-align:center;color:var(--muted);font-size:12px}.pdf-placeholder strong{display:block;font-size:15px;color:var(--ink);margin-bottom:5px}.preview-note{padding:0 16px 12px;font-size:11px;color:var(--muted)}
-  .diagnostic-box{margin-top:9px;border:1px solid #e2cdd0;border-radius:7px;background:#fff}.diagnostic-box summary{cursor:pointer;padding:10px 14px;font-size:12px;color:var(--red);font-weight:700}.diagnostic-box p{padding:0 14px 9px;font-size:11px;color:var(--muted)}.diagnostic-box textarea{display:block;width:calc(100% - 28px);margin:0 14px;padding:10px;border:1px solid var(--line);border-radius:5px;background:#f7f9fa;color:var(--ink);font:11px/1.6 Consolas,monospace;resize:vertical;white-space:pre-wrap}.diagnostic-actions{display:flex;align-items:center;gap:10px;padding:10px 14px}.diagnostic-actions span{font-size:11px;color:var(--muted)}
-  .guide-panel{margin-top:16px;padding:18px}.guide-heading{display:flex;align-items:flex-start;gap:14px;justify-content:space-between}.guide-heading p{font-size:12px;color:var(--muted);margin-top:4px}.guide-source{font-size:11px;color:var(--muted);overflow-wrap:anywhere}.guide-steps{font-size:12px;color:var(--muted);margin:12px 0}.guide-scroller{overflow:auto;border:1px solid #bdcfce;border-radius:7px;background:#e9eeee;max-height:620px}.guide-board{position:relative;line-height:0}.guide-board img{display:block;width:100%;height:auto}.guide-board svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.guide-handle{cursor:ew-resize;touch-action:none}.guide-handle.horizontal{cursor:ns-resize}.guide-hit{stroke:transparent;stroke-width:12}.guide-rule{stroke:#087b72;stroke-width:1.8;pointer-events:none}.guide-handle:focus .guide-rule{stroke:#ad480a;stroke-width:3}.guide-label{font-family:"Malgun Gothic",sans-serif;fill:#07554e;font-size:11px;font-weight:700;pointer-events:none}.guide-controls{border:0;margin:13px 0 0;padding:0;min-width:0}.guide-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.guide-toolbar label{font-size:12px;font-weight:700}.guide-toolbar input{width:85px;margin-left:7px;padding:7px;border:1px solid #ccdadd;border-radius:5px}.guide-status{font-size:12px;color:var(--muted);margin-top:9px;overflow-wrap:anywhere}.guide-numbers{margin:12px 0;border-top:1px solid var(--line);padding-top:9px}.guide-numbers summary{font-size:12px;cursor:pointer;color:var(--muted)}.guide-number-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:9px;margin-top:10px}.guide-number-grid label{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px}.guide-number-grid input{width:77px;padding:6px;border:1px solid #ccdadd;border-radius:4px}.guide-confirm{display:flex;align-items:flex-start;gap:8px;font-size:12px;margin:14px 0 12px;cursor:pointer}.guide-confirm input{margin:4px 0 0;accent-color:var(--teal)}.guide-approval-note{margin-top:9px;color:var(--teal);font-size:12px}.guide-heading button{flex:none}@media(max-width:780px){.guide-panel{padding:13px}.guide-heading{gap:8px}.guide-heading h2{font-size:15px}.guide-number-grid{grid-template-columns:1fr 1fr}.guide-number-grid label{flex-wrap:wrap}.guide-confirm{font-size:12px}}
+    :root{--ink:#172e3b;--muted:#647983;--teal:#126e68;--teal-dark:#0c5551;--line:#dce6e8;--bg:#f3f6f7;--amber:#875916;--red:#a02e37}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Malgun Gothic","맑은 고딕","Segoe UI",sans-serif;font-size:14px;line-height:1.6}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.5}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #79bdb6;outline-offset:3px}p{margin:0}.masthead{background:var(--ink);color:#fff}.masthead-inner{max-width:1460px;margin:auto;padding:20px 34px;display:flex;align-items:center;gap:13px}.brand-icon{width:40px;height:40px;display:grid;place-items:center;border:1px solid #ffffff30;border-radius:10px;color:#9ae0d3}.brand{font-size:18px;font-weight:700;letter-spacing:-.5px}.brand-sub{font-size:10px;letter-spacing:1.4px;color:#b8cbd0}.spacer{flex:1}.local-badge{font-size:12px;color:#d5e9e4}.local-badge:before{content:"";display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:#8bd6c0}.exit-btn{background:transparent;border:1px solid #ffffff35;color:#e3ebee;padding:6px 14px;border-radius:6px;font-size:12px}main{max-width:1460px;margin:auto;padding:34px 34px 24px}.eyebrow{font-size:11px;letter-spacing:1.4px;color:var(--teal);font-weight:700;margin-bottom:5px}h1{font-size:29px;line-height:1.35;letter-spacing:-1px;margin:0 0 9px}.intro-text{color:var(--muted)}.steps{display:flex;gap:14px;align-items:center;margin:24px 0 20px;font-size:12px;color:var(--muted)}.step{display:flex;gap:7px;align-items:center;white-space:nowrap}.step .n{width:23px;height:23px;display:grid;place-items:center;border:1px solid #ccd9de;border-radius:50%;font-size:11px}.step.active{color:var(--teal);font-weight:700}.step.active .n{background:var(--teal);border-color:var(--teal);color:white}.step-line{width:40px;height:1px;background:var(--line)}.panel{background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:0 5px 24px #1b364006}.upload{padding:23px;display:flex;align-items:center;gap:19px;border-style:dashed;border-color:#a9c7c6}.upload.drag{background:#e9f6f2;border-color:var(--teal)}.upload-symbol{width:52px;height:59px;display:grid;place-items:center;flex:none;border:1px solid #d9e8e5;border-radius:9px;background:#f3faf7;color:var(--teal)}.upload-copy{flex:1;min-width:0}.upload-copy strong{display:block;font-size:16px;overflow-wrap:anywhere}.upload-copy p{font-size:12px;color:var(--muted);margin-top:3px}.primary,.secondary{border:1px solid transparent;border-radius:7px;padding:10px 17px;font-size:13px;font-weight:700;white-space:nowrap}.primary{background:var(--teal);color:#fff}.primary:hover:not(:disabled){background:var(--teal-dark)}.secondary{background:#fff;border-color:#cfdcdf;color:var(--ink)}.secondary:hover:not(:disabled){background:#f2f7f7}.small{padding:6px 11px;font-size:12px}.notice{font-size:12px;color:#52766b;margin:11px 1px 0}.message{margin-top:15px;padding:12px 15px;border-radius:7px;font-size:13px;white-space:pre-line;overflow-wrap:anywhere}.message.error{border:1px solid #ebc7ca;background:#fff1f2;color:var(--red)}.message.success{border:1px solid #c6e2d7;background:#edf8f2;color:#235f43}.message.loading{border:1px solid #d1e1e6;background:#edf5f8;color:#335d70}.spinner{display:inline-block;width:12px;height:12px;margin-right:8px;border:2px solid #8cb9c6;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-1px}@keyframes spin{to{transform:rotate(360deg)}}.empty{margin-top:22px;padding:38px 24px;text-align:center;color:var(--muted);font-size:12px;background:#ffffff70;border:1px solid var(--line);border-radius:10px}.empty strong{display:block;font-size:14px;margin-bottom:5px;font-weight:500}.workspace{margin-top:23px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:17px}.metric{padding:17px 21px}.metric-label{font-size:12px;color:var(--muted);display:block}.metric-value{display:block;font-size:27px;font-weight:700;letter-spacing:-.8px;line-height:1.35;margin-top:4px}.metric-value small{font-size:13px;font-weight:400;letter-spacing:0;color:var(--muted);margin-left:4px}.teal{color:var(--teal)}.amber{color:var(--amber)}.export-bar{padding:17px 21px;display:flex;align-items:center;gap:18px;margin-bottom:16px}.export-copy{flex:1}.export-copy strong{font-size:14px}.export-copy p{font-size:12px;color:var(--muted);margin-top:2px}.export-button{display:flex;align-items:center;gap:9px;padding:11px 21px}.source-preview{margin-bottom:15px;overflow:hidden}.source-preview summary,.settings summary{padding:12px 17px;cursor:pointer;font-size:12px;font-weight:700}.source-preview summary span{font-weight:400;color:var(--muted);margin-left:10px;overflow-wrap:anywhere}.preview-body{padding:0 17px 15px}.preview-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:10px}.preview-note{font-size:11px;color:var(--muted);flex:1;min-width:170px}.source-preview img{display:block;max-width:100%;max-height:430px;width:auto;margin:auto;object-fit:contain}.pdf-placeholder{padding:24px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed var(--line);border-radius:6px}.settings{margin-bottom:16px}.settings-body{padding:0 18px 17px}.rates-fields{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px}.settings label{font-size:11px;color:#536d78}.settings input{display:block;width:100%;margin-top:5px;padding:8px;border:1px solid #ccdadd;border-radius:5px;color:var(--ink);background:#fff}.settings-note{font-size:11px;color:var(--muted);margin-top:10px}.officer-fields{display:flex;gap:12px;margin-top:14px}.officer-fields label{max-width:260px;flex:1}.table-panel{overflow:hidden}.section-header{display:flex;align-items:center;gap:12px;padding:17px 20px 13px;border-bottom:1px solid var(--line);flex-wrap:wrap}h2{font-size:16px;margin:0;letter-spacing:-.4px}.count-badge{font-size:11px;color:var(--teal);background:#e9f4f1;padding:2px 8px;border-radius:4px;white-space:nowrap}.source-name{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px}.common-rank{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:11px;color:var(--muted)}.common-rank input{width:155px;padding:7px 9px;border:1px solid #d8e2e5;border-radius:5px;color:var(--ink)}.table-hint{padding:9px 20px;background:#fbfcfc;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted)}.table-wrap{overflow:auto;max-height:520px;overscroll-behavior:contain;scrollbar-color:#b9ccce #eef3f4}.trips-table{border-collapse:separate;border-spacing:0;width:100%;min-width:2020px;table-layout:fixed;font-size:12px}.trips-table th{position:sticky;top:0;z-index:2;background:#eef3f4;border-bottom:1px solid #cddcdf;padding:11px 8px;font-size:11px;color:#526d78;text-align:left;white-space:nowrap}.trips-table td{border-bottom:1px solid #e7edef;padding:9px 6px;vertical-align:top}.trips-table tr:last-child td{border-bottom:0}.trips-table tbody tr:hover td{background:#fbfdfd}.trips-table th:first-child,.trips-table td:first-child{position:sticky;left:0;z-index:1;background:#fff;text-align:center;border-right:1px solid #e7edef}.trips-table th:first-child{z-index:3;background:#eef3f4}.trips-table input,.trips-table select{width:100%;padding:7px 6px;border:1px solid #d8e2e5;border-radius:5px;background:#fff;color:var(--ink);min-height:33px;font-size:12px;line-height:1.4}.trips-table input[type=number]{text-align:right;font-variant-numeric:tabular-nums;appearance:textfield;-moz-appearance:textfield}.trips-table input::-webkit-inner-spin-button,.trips-table input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.trips-table .needs-check{border-color:#d9b775;background:#fffcf6}.trips-table .invalid{border-color:#cb6a74;background:#fff4f4}.date-line{display:flex;gap:5px;margin-top:5px}.date-line:first-child{margin-top:0}.date-line input[type=date]{flex:1;min-width:118px}.date-line input[type=time]{width:91px}.stack{display:grid;gap:5px}.row-n{font-weight:700;color:#5b717b;padding-top:8px}.include-checkbox{width:16px!important;min-height:16px!important;height:16px;margin:0;accent-color:var(--teal)}.row-state{font-size:9px;color:var(--amber);margin-top:5px;line-height:1.4;overflow-wrap:anywhere}.excluded td:not(:first-child){opacity:.43}.duration{display:block;color:var(--muted);font-size:10px;margin-top:5px;text-align:center}.row-total{display:block;padding:7px 5px;text-align:right;font-variant-numeric:tabular-nums;color:#536e78}.editor-bottom{border-top:1px solid var(--line);padding:10px 20px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:15px}.review-box{margin-top:15px;border:1px solid #e9d8b7;border-radius:8px;background:#fff9ef;color:var(--amber);font-size:12px}.review-box summary{padding:11px 16px;cursor:pointer;font-weight:700}.review-box ul{margin:0;padding:0 20px 14px 34px}.review-box li+li{margin-top:4px}.diagnostic-box{margin-top:9px;border:1px solid #e2cdd0;border-radius:7px;background:#fff}.diagnostic-box summary{padding:10px 14px;cursor:pointer;font-size:12px;color:var(--red);font-weight:700}.diagnostic-box p{padding:0 14px 9px;font-size:11px;color:var(--muted)}.diagnostic-box textarea{display:block;width:calc(100% - 28px);margin:0 14px;padding:10px;border:1px solid var(--line);border-radius:5px;background:#f7f9fa;color:var(--ink);font:11px/1.6 Consolas,monospace;resize:vertical;white-space:pre-wrap}.diagnostic-actions{display:flex;align-items:center;gap:10px;padding:10px 14px}.diagnostic-actions span{font-size:11px;color:var(--muted)}footer{max-width:1460px;margin:auto;padding:0 34px 25px;display:flex;justify-content:space-between;gap:18px;color:#84949c;font-size:11px}@media(max-width:780px){.masthead-inner{padding:17px 19px}.brand{font-size:16px}.brand-sub{font-size:9px}.local-badge{display:none}main{padding:27px 18px 20px}h1{font-size:25px}.intro-text{font-size:12px}.steps{gap:10px;font-size:11px}.step-line{width:20px}.upload{padding:18px;gap:12px;flex-wrap:wrap}.upload-symbol{width:42px;height:48px}.upload-copy strong{font-size:14px}.upload>.primary{width:100%}.metrics{gap:8px}.metric{padding:13px 11px}.metric-label{font-size:10px}.metric-value{font-size:23px}.export-bar{align-items:stretch;flex-direction:column;gap:12px;padding:16px}.export-button{justify-content:center}.rates-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.officer-fields{flex-direction:column}.officer-fields label{max-width:none}.section-header{padding:16px}.source-name{max-width:100%;width:100%;order:3}.common-rank{margin-left:0;width:100%}.common-rank input{flex:1}.table-hint{padding:9px 16px}.editor-bottom{padding:10px 15px;flex-direction:column;gap:3px}footer{padding:0 18px 20px;flex-direction:column;gap:4px}}@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
   </style>
 </head>
 <body>
-  <header class="masthead"><div class="masthead-inner">
-    <div class="brand-icon" aria-hidden="true"><svg width="23" height="25" viewBox="0 0 23 25" fill="none"><path d="M4 1.5h10L20 8v15H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 2v6h6M8 12h8M8 16h8M8 20h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-    <div><div class="brand">여비청구서 변환기</div><div class="brand-sub">TRAVEL CLAIM ASSISTANT · v0.2.2</div></div>
-    <div class="masthead-spacer"></div><span class="local-badge">내 PC에서 처리</span><button class="exit-btn" id="exitButton" type="button">종료</button>
-  </div></header>
+  <header class="masthead"><div class="masthead-inner"><div class="brand-icon" aria-hidden="true"><svg width="23" height="25" viewBox="0 0 23 25" fill="none"><path d="M4 1.5h10L20 8v15H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 2v6h6M8 12h8M8 16h8M8 20h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><div><div class="brand">여비청구서 변환기</div><div class="brand-sub">TRAVEL CLAIM ASSISTANT · v0.3.0</div></div><div class="spacer"></div><span class="local-badge">내 PC에서 처리</span><button id="exitButton" class="exit-btn" type="button">종료</button></div></header>
   <main>
-    <p class="eyebrow">캡처 이미지 → 여비지급명세서</p><h1>출장 화면을 청구서로, 간편하게.</h1>
-    <p class="intro-text">출장 화면을 붙여넣고, 인식한 내용을 확인한 뒤 여비지급명세서로 저장하세요.</p>
-    <nav class="steps" aria-label="변환 단계"><div class="step active" id="step1"><span class="n">1</span>캡처 붙여넣기</div><div class="step-line"></div><div class="step" id="step2"><span class="n">2</span>인식 내용 확인</div><div class="step-line"></div><div class="step" id="step3"><span class="n">3</span>명세서 저장</div></nav>
-    <section class="panel upload" id="dropZone" aria-label="출장 화면 캡처 가져오기">
-      <div class="upload-symbol" aria-hidden="true"><svg width="27" height="31" viewBox="0 0 27 31" fill="none"><path d="M4 1.5h12l7 7V29H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 2v7h7M13.5 23V13m0 0-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="upload-copy"><strong id="uploadTitle">출장 화면 캡처를 붙여넣으세요</strong><p id="uploadSubtitle">Ctrl+V로 붙여넣기 · 끌어놓기 · PNG, JPG, WebP, BMP · 최대 20MB · PDF도 선택 가능</p></div>
-      <button class="primary" id="selectButton" type="button">캡처 / PDF 선택</button><input id="fileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.pdf,image/png,image/jpeg,image/webp,image/bmp,application/pdf" hidden>
-    </section>
-    <div class="notice"><span class="notice-icon" aria-hidden="true">ⓘ</span><p>파일은 외부 서버로 전송하지 않고 이 컴퓨터에서 처리합니다. 인식 결과는 원본과 대조해 주세요. 신청시간과 실제 출장시간을 구분해 확인합니다.</p></div>
-    <details class="panel image-preview" id="imagePreview" hidden><summary>원본 자료 확인 <span class="preview-file-name" id="previewFileName"></span><span>개인정보가 포함될 수 있습니다.</span></summary><div class="preview-toolbar"><p class="preview-status" id="previewStatus"></p><button class="secondary" id="openImageButton" type="button">크게 보기</button><button class="secondary" id="previousSourceButton" type="button" hidden>이전 내역 원본 보기</button><button class="secondary" id="guideButton" type="button" hidden>표 배치 직접 확인</button><button class="secondary" id="retryButton" type="button" hidden>이 캡처 다시 인식</button></div><p class="preview-note" id="previewNote" hidden></p><div class="pdf-placeholder" id="pdfPlaceholder" hidden><strong>PDF 원본</strong><span>인식 후 첫 페이지 미리보기를 표시합니다. 원본은 “PDF 원본 열기”로 확인할 수 있습니다.</span></div><img id="sourceImage" alt="불러온 출장 화면 원본 캡처" hidden></details>
-    <section class="panel guide-panel" id="guidePanel" aria-labelledby="guideTitle" hidden>
-      <div class="guide-heading"><div><h2 id="guideTitle">표 배치를 확인하고 계속하기</h2><p>근무지내출장처리 목록의 열 순서가 같은 캡처에 사용하세요.</p><div class="guide-source" id="guideName"></div></div><button class="secondary small" id="guideCloseButton" type="button">닫기</button></div>
-      <p class="guide-steps">① 위·아래 선을 제목을 제외한 첫 행과 마지막 행 끝에 맞추세요. ② 세로선을 같은 이름의 열 경계에 맞추세요. ③ 출장 행 수를 확인하세요. 선을 끌거나 아래 숫자를 바꿀 수 있습니다. 작은 화면에서는 원본을 좌우로 스크롤하세요.</p>
-      <div class="guide-scroller" id="guideScroller"><div class="guide-board" id="guideBoard"><img id="guideImage" alt="배치를 직접 확인할 원본 캡처"><svg id="guideSvg" aria-label="열 경계와 출장 행 영역 조정"></svg></div></div>
-      <fieldset class="guide-controls" id="guideControls"><div class="guide-toolbar"><label>출장 행 수<input id="guideRows" type="number" min="1" max="100" step="1" value="10"></label><button class="secondary small" id="guidePresetButton" type="button">근무지내 목록 예시 배치</button></div><p class="guide-status" id="guideStatus" role="status" aria-live="polite"></p><details class="guide-numbers"><summary>선 위치를 숫자로 조정 (%)</summary><div class="guide-number-grid" id="guideNumbers"></div></details><label class="guide-confirm"><input id="guideConfirmed" type="checkbox"><span>원본과 열 이름·본문 범위·행 수가 맞는 것을 확인했습니다. 인식 후 내용도 대조하겠습니다.</span></label><button class="primary" id="guideParseButton" type="button" disabled>확인한 배치로 인식</button></fieldset>
-    </section>
+    <p class="eyebrow">PDF → 여비지급명세서</p><h1>출장 PDF를 청구내역서로, 간편하게.</h1><p class="intro-text">다운받은 개인별 출장 PDF를 선택하면 청구내역을 자동으로 정리합니다.</p>
+    <nav class="steps" aria-label="변환 단계"><div id="step1" class="step active"><span class="n">1</span>PDF 선택</div><div class="step-line"></div><div id="step2" class="step"><span class="n">2</span>내역 확인</div><div class="step-line"></div><div id="step3" class="step"><span class="n">3</span>PDF 저장</div></nav>
+    <section id="dropZone" class="panel upload" aria-label="출장 PDF 불러오기"><div class="upload-symbol" aria-hidden="true"><svg width="27" height="31" viewBox="0 0 27 31" fill="none"><path d="M4 1.5h12l7 7V29H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 2v7h7M13.5 23V13m0 0-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="upload-copy"><strong id="uploadTitle">출장 PDF를 선택하세요</strong><p id="uploadSubtitle">파일 선택 또는 끌어놓기 · PDF 한 개 · 최대 20MB</p></div><button id="selectButton" class="primary" type="button">PDF 선택</button><input id="fileInput" type="file" accept=".pdf,application/pdf" hidden></section>
+    <p class="notice">파일은 외부 서버로 전송하지 않고 이 컴퓨터에서 처리합니다.</p>
     <div id="message" class="message" role="status" aria-live="polite" hidden></div>
-    <details class="diagnostic-box" id="diagnosticBox" hidden><summary>오류 진단 정보</summary><p>문제 문의 시 아래 정보를 복사해 전달할 수 있습니다. 원본 문서와 출장 내역은 이 정보에 포함하지 않습니다.</p><textarea id="diagnosticText" rows="5" readonly aria-label="오류 진단 정보"></textarea><div class="diagnostic-actions"><button class="secondary small" id="copyDiagnosticButton" type="button">진단 정보 복사</button><span id="copyDiagnosticStatus" role="status" aria-live="polite"></span></div></details>
-    <section class="empty" id="emptyState"><strong id="emptyTitle">아직 불러온 출장 내역이 없습니다.</strong><p id="emptyText">이미지를 넣으면 출장 내역과 확인할 항목이 이곳에 표시됩니다.</p></section>
-    <div class="workspace" id="workspace" hidden>
-      <section class="metrics" aria-label="출장 내역 요약"><div class="panel metric"><span class="metric-label">청구 포함 출장</span><span class="metric-value"><span id="tripCount">0</span><small>건</small></span></div><div class="panel metric"><span class="metric-label">확인 필요</span><span class="metric-value amber"><span id="reviewCount">0</span><small>건</small></span></div><div class="panel metric"><span class="metric-label">입력된 청구액</span><span class="metric-value teal"><span id="claimTotal">0</span><small>원</small></span></div></section>
-      <section class="panel rates-panel" aria-labelledby="ratesTitle"><div class="rates-heading"><div><h2 id="ratesTitle">지급기준 확인</h2><p>아래 값은 관내 출장 계산을 위한 기본 제안입니다. 기관의 최신 지급기준과 감액 조건을 확인해 주세요.</p></div><button class="secondary small" type="button" id="recalculateButton">일비 다시 계산</button></div><div class="rates-fields"><label><span class="field-label">기준시간 (분)</span><input id="thresholdMinutes" type="number" min="1" max="1440" step="1" value="240"></label><label><span class="field-label">기준시간 이상 (원)</span><input id="rateLong" type="number" min="0" max="999999999" step="1" value="20000"></label><label><span class="field-label">기준시간 미만 (원)</span><input id="rateShort" type="number" min="0" max="999999999" step="1" value="10000"></label><label><span class="field-label">공용차량 차감액 (원)</span><input id="vehicleDeduction" type="number" min="0" max="999999999" step="1" value="10000"></label><label><span class="field-label">동일인·동일일 상한 (원)</span><input id="dailyCap" type="number" min="0" max="999999999" step="1" value="20000"></label></div><p class="rates-note">관외 출장과 확인되지 않은 값은 별도 검토가 필요합니다. 자동 계산 결과도 최종 지급액이 아닙니다.</p></section>
-      <section class="panel table-panel" aria-labelledby="tableTitle"><div class="section-header"><h2 id="tableTitle">출장 내역 확인</h2><span class="count-badge" id="countBadge">0건</span><span class="spacer"></span><span class="source-name" id="sourceName"></span></div><p class="table-hint">각 칸을 눌러 수정할 수 있습니다. <span style="color:var(--amber)">연한 노란색 칸</span>은 확인이 필요한 항목입니다. 표를 좌우로 스크롤하면 경비 항목이 보입니다.</p>
-        <div class="table-wrap" tabindex="0" aria-label="출장 내역 표, 가로 스크롤 가능"><table class="trips-table"><colgroup><col style="width:69px"><col style="width:174px"><col style="width:91px"><col style="width:238px"><col style="width:79px"><col style="width:99px"><col style="width:104px"><col style="width:161px"><col style="width:235px"><col style="width:107px"><col style="width:99px"><col style="width:99px"><col style="width:99px"><col style="width:99px"><col style="width:109px"><col style="width:119px"></colgroup><thead><tr><th scope="col">포함 / 순번</th><th scope="col">소속 / 직급</th><th scope="col">성명</th><th scope="col">실제 출장기간 · 출발 / 복귀 시각</th><th scope="col">구분</th><th scope="col">공용차량</th><th scope="col">결재상태</th><th scope="col">출장지</th><th scope="col">출장목적</th><th scope="col">일비 (원)</th><th scope="col">식비 (원)</th><th scope="col">숙박비 (원)</th><th scope="col">교통비 (원)</th><th scope="col">기타 (원)</th><th scope="col">경비 합계 (원)</th><th scope="col">청구액 (원)</th></tr></thead><tbody id="tripRows"></tbody></table></div>
-        <div class="editor-bottom"><span>일비 제안값은 실제 출장시간과 공용차량 여부를 기준으로 계산합니다. 금액은 담당자가 확인해 주세요.</span><span>빈 금액 = 미확인 · 0 = 0원</span></div>
-      </section>
-      <aside class="review-box" id="reviewBox" role="note" hidden><strong>저장 전 확인해 주세요</strong><ul id="reviewList"></ul></aside>
-      <section class="panel confirmations"><label><input id="ratesConfirmed" type="checkbox"><span>위 기준이 우리 기관 기준과 일치함을 확인했습니다.</span></label><label><input id="dataConfirmed" type="checkbox"><span id="dataConfirmedLabel">OCR 내용과 지급대상(결재상태)을 원본과 대조해 확인했습니다.</span></label><p id="confirmationHelp">두 항목을 확인하고 필수 정보와 결재상태가 충족되면 최종 명세서로 저장합니다.</p><p class="guide-approval-note" id="approvalPolicyNote" hidden>시스템에서 결재완료된 내역만 내려받은 PDF로 처리합니다.</p></section>
-      <section class="panel export-panel" aria-label="명세서 저장 설정"><div class="export-fields"><label class="export-field"><span class="field-label">대조 확인자 직급 · 선택</span><input id="officerTitle" type="text" placeholder="예: 지방행정주사" maxlength="80" autocomplete="off"></label><label class="export-field"><span class="field-label">대조 확인자 성명 · 선택</span><input id="officerName" type="text" placeholder="확인자 성명" maxlength="40" autocomplete="off"></label></div><button class="primary export-button" id="renderButton" type="button"><svg width="16" height="17" viewBox="0 0 16 17" fill="none" aria-hidden="true"><path d="M8 1v10m0 0L4 7m4 4 4-4M2 12v3h12v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="renderLabel">명세서 PDF 저장</span></button></section>
-      <p class="export-note">기준·인식 결과 미확인, 필수 정보 누락 또는 결재 미완료가 있으면 검토용 초안으로 저장합니다. 서명·날인은 공란으로 둡니다.</p>
+    <details id="diagnosticBox" class="diagnostic-box" hidden><summary>오류 진단 정보</summary><p>문제 문의 시 아래 정보를 복사해 전달할 수 있습니다. 원본 PDF와 출장 내역은 포함하지 않습니다.</p><textarea id="diagnosticText" rows="5" readonly aria-label="오류 진단 정보"></textarea><div class="diagnostic-actions"><button id="copyDiagnosticButton" class="secondary small" type="button">진단 정보 복사</button><span id="copyDiagnosticStatus" role="status" aria-live="polite"></span></div></details>
+    <section id="emptyState" class="empty"><strong>PDF를 넣으면 청구내역이 여기에 표시됩니다.</strong><p>정리된 내용을 확인하거나 수정한 뒤 PDF로 저장하세요.</p></section>
+    <div id="workspace" class="workspace" hidden>
+      <section class="metrics" aria-label="청구내역 요약"><div class="panel metric"><span class="metric-label">청구할 출장</span><span class="metric-value"><span id="tripCount">0</span><small>건</small></span></div><div class="panel metric"><span class="metric-label">청구금액</span><span class="metric-value teal"><span id="claimTotal">0</span><small>원</small></span></div><div class="panel metric"><span class="metric-label">내용 확인 필요</span><span class="metric-value amber"><span id="reviewCount">0</span><small>건</small></span></div></section>
+      <section class="panel export-bar"><div class="export-copy"><strong>청구내역서가 준비되었습니다.</strong><p id="calculationStatus">필요한 내용은 아래 표에서 바로 수정할 수 있습니다.</p></div><button id="renderButton" class="primary export-button" type="button"><svg width="16" height="17" viewBox="0 0 16 17" fill="none" aria-hidden="true"><path d="M8 1v10m0 0L4 7m4-4 4-4M2 12v3h12v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="renderLabel">PDF 저장</span></button></section>
+      <details id="sourcePreview" class="panel source-preview"><summary>원본 PDF 보기 <span id="previewFileName"></span></summary><div class="preview-body"><div class="preview-toolbar"><p id="previewNote" class="preview-note"></p><button id="openPdfButton" class="secondary small" type="button">PDF 원본 열기</button></div><div id="pdfPlaceholder" class="pdf-placeholder" hidden>첫 페이지 미리보기가 없습니다. PDF 원본 열기로 확인하세요.</div><img id="sourceImage" alt="원본 PDF 첫 페이지 미리보기" hidden></div></details>
+      <details id="settings" class="panel settings"><summary>지급기준 설정 · 필요할 때만 변경</summary><div class="settings-body"><div class="rates-fields"><label>기준시간 (분)<input id="thresholdMinutes" type="number" min="1" max="1440" step="1" value="240"></label><label>기준시간 이상 (원)<input id="rateLong" type="number" min="0" max="100000000" step="1" value="20000"></label><label>기준시간 미만 (원)<input id="rateShort" type="number" min="0" max="100000000" step="1" value="10000"></label><label>공용차량 차감 (원)<input id="vehicleDeduction" type="number" min="0" max="100000000" step="1" value="10000"></label><label>동일인·동일일 상한 (원)<input id="dailyCap" type="number" min="0" max="100000000" step="1" value="20000"></label></div><p class="settings-note">적용할 기관 기준에 맞게 바꾸면 금액이 자동 계산됩니다. 관외·여러 날 출장은 별도 기준에 따라 금액을 입력하세요.</p><div class="officer-fields"><label>대조 확인자 직급 · 선택<input id="officerTitle" type="text" maxlength="80" autocomplete="off"></label><label>대조 확인자 성명 · 선택<input id="officerName" type="text" maxlength="40" autocomplete="off"></label></div></div></details>
+      <section class="panel table-panel"><div class="section-header"><h2>청구내역 확인</h2><span id="countBadge" class="count-badge"></span><span id="sourceName" class="source-name"></span><label class="common-rank">공통직급 · 선택<input id="commonRank" type="text" maxlength="120" placeholder="빈 직급에 한 번에 적용" autocomplete="off"></label></div><p class="table-hint">각 칸을 눌러 수정할 수 있습니다. 시간·차량·포함 여부를 바꾸면 금액을 자동으로 다시 계산합니다. 표는 좌우로 스크롤할 수 있습니다.</p><div class="table-wrap"><table class="trips-table"><colgroup><col style="width:75px"><col style="width:170px"><col style="width:90px"><col style="width:290px"><col style="width:85px"><col style="width:85px"><col style="width:135px"><col style="width:210px"><col style="width:100px"><col style="width:85px"><col style="width:85px"><col style="width:100px"><col style="width:85px"><col style="width:110px"><col style="width:110px"></colgroup><thead><tr><th>포함 / 순번</th><th>소속 / 직급</th><th>성명</th><th>실제 출장기간 · 출발 / 복귀</th><th>구분</th><th>공용차량</th><th>출장지</th><th>출장목적</th><th>일비</th><th>식비</th><th>숙박비</th><th>교통비</th><th>기타</th><th>합계</th><th>청구액</th></tr></thead><tbody id="tripRows"></tbody></table></div><div class="editor-bottom"><span>금액은 원 단위입니다. 비어 있는 금액은 확인이 필요한 값입니다.</span><span>서명·날인은 출력 후 별도로 확인합니다.</span></div></section>
+      <details id="reviewBox" class="review-box" hidden><summary>화면에서 확인할 내용 <span id="warningCount"></span></summary><ul id="reviewList"></ul></details>
     </div>
-  </main><footer><span>여비청구서 변환기 v0.2.2 · 로컬 문서 도구</span><span>원본 이미지는 변경하지 않습니다.</span></footer>
+  </main>
+  <footer><span>여비청구서 변환기 v0.3.0 · 로컬 PDF 문서 도구</span><span>원본 PDF는 변경하지 않습니다.</span></footer>
   <script>
     'use strict';
     const SESSION_TOKEN = '__SESSION_TOKEN__';
-    const APP_VERSION = '0.2.2';
+    const APP_VERSION = '0.3.0';
     const $ = id => document.getElementById(id);
-    const state = {trips: [], warnings: [], sourceName: '', busy: false, completed: false, calculationDirty: false, previewUrl: null, previewFile: null, attemptFile: null, sourceFile: null, sourcePreviewData: null, sourcePreviewNote: '', approvalPolicy: 'from_image', guide: null};
-    const moneyFields = ['daily_allowance', 'meal', 'lodging', 'transport', 'other', 'claim_amount'];
-    const rateIds = {rate_long:'rateLong', rate_short:'rateShort', vehicle_deduction:'vehicleDeduction', threshold_minutes:'thresholdMinutes', daily_cap:'dailyCap'};
-    const defaultRates = {rate_long:20000, rate_short:10000, vehicle_deduction:10000, threshold_minutes:240, daily_cap:20000};
-    const calculationFields = new Set(['department','rank','name','start_date','end_date','start_time','end_time','scope','vehicle']);
-    const formatNumber = value => new Intl.NumberFormat('ko-KR').format(value);
-    const isMissing = value => value === null || value === undefined || value === '';
-    const validMoney = value => isMissing(value) || (Number.isSafeInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 999999999);
-    const numericValue = value => isMissing(value) ? null : Number(value);
-    const errorText = err => err && err.message ? err.message : '작업 중 오류가 발생했습니다.';
-    const isPdf = file => file && (/\.pdf$/i.test(file.name || '') || file.type === 'application/pdf');
-    const inputKind = file => isPdf(file) ? 'PDF' : '캡처';
+    const moneyFields = ['daily_allowance','meal','lodging','transport','other','claim_amount'];
+    const costFields = moneyFields.filter(field => field !== 'claim_amount');
+    const calculationFields = new Set(['department','name','start_date','end_date','start_time','end_time','scope','vehicle','include']);
+    const rateIds = {threshold_minutes:'thresholdMinutes',rate_long:'rateLong',rate_short:'rateShort',vehicle_deduction:'vehicleDeduction',daily_cap:'dailyCap'};
+    const state = {trips:[],warnings:[],sourceName:'',sourceFile:null,sourceUrl:null,previewData:null,previewNote:'',busy:false,calculating:false,calculationDirty:false,calculationPromise:null,calculationError:false,timer:null,revision:0,manual:new Map(),commonRank:'',completed:false};
     const included = trip => trip.include !== false;
-    const approved = trip => String(trip.approval_status || '').replace(/\s/g, '') === '결재완료';
-
-    const guideColumns = ['순번','부서','직급','성명','사번','실제시각','신청기간','출장지','출장목적','등급','차량','결재'];
-    const guidePresetXs = [43,93,225,327,373,443,604,825,919,1076,1123,1171,1234].map(value => value / 1244);
-    function validGuide(guide) {
-      return guide && guide.xs.length === 13 && guide.xs.every((value, i) => Number.isFinite(value) && value >= 0 && value <= 1 && (!i || value - guide.xs[i - 1] >= 4 / guide.width)) && (guide.xs[12] - guide.xs[0]) * guide.width >= 350 && Number.isInteger(guide.rowCount) && guide.rowCount >= 1 && guide.rowCount <= 100 && Number.isFinite(guide.top) && Number.isFinite(guide.bottom) && guide.top >= 0 && guide.bottom <= 1 && (guide.bottom - guide.top) * guide.height / guide.rowCount >= 10 && (guide.bottom - guide.top) * guide.height / guide.rowCount <= 300;
+    const missing = value => value === null || value === undefined || value === '';
+    const validMoney = value => missing(value) || Number.isSafeInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 100000000;
+    const numericValue = value => missing(value) ? null : Number(value);
+    const formatNumber = value => new Intl.NumberFormat('ko-KR').format(value);
+    const errorText = error => error instanceof Error ? error.message : '요청을 처리하지 못했습니다.';
+    function showMessage(text,kind='loading') {
+      $('diagnosticBox').hidden=true;$('diagnosticBox').open=false;$('diagnosticText').value='';$('copyDiagnosticStatus').textContent='';
+      const node=$('message');node.replaceChildren();node.className='message '+kind;
+      if(kind==='loading'){const spinner=document.createElement('span');spinner.className='spinner';spinner.setAttribute('aria-hidden','true');node.appendChild(spinner);}
+      node.appendChild(document.createTextNode(text));node.hidden=false;
     }
-    function updateGuideReady() {
-      const invalidNumber = Array.from($('guideNumbers').querySelectorAll('input')).some(input => input.value === '' || input.getAttribute('aria-invalid') === 'true');
-      $('guideParseButton').disabled = state.busy || !$('guideConfirmed').checked || !validGuide(state.guide) || invalidNumber;
+    function showError(error,extra='') {
+      showMessage(errorText(error)+extra,'error');
+      const info=['화면 버전: v'+APP_VERSION];
+      if(typeof error?.errorCode==='string' && error.errorCode)info.push('오류 코드: '+error.errorCode.slice(0,160));
+      if(Number.isInteger(error?.httpStatus))info.push('HTTP 상태: '+error.httpStatus);
+      if(typeof error?.diagnostics==='string' && error.diagnostics)info.push(error.diagnostics.slice(0,6000));
+      if(info.length>1){$('diagnosticText').value=info.join('\n');$('diagnosticBox').hidden=false;}
     }
-    function resetGuideConfirmation() {
-      $('guideConfirmed').checked = false; updateGuideReady();
+    function updateControls() {
+      for(const id of ['selectButton','fileInput','exitButton','openPdfButton','commonRank','officerTitle','officerName',...Object.values(rateIds)])$(id).disabled=state.busy;
+      $('tripRows').inert=state.busy;$('renderButton').disabled=state.busy || !state.trips.some(included);
+      $('calculationStatus').textContent=state.calculating?'변경한 내용으로 금액을 자동 계산하고 있습니다…':state.calculationDirty?'변경한 내용의 금액을 자동 계산합니다.':'필요한 내용은 아래 표에서 바로 수정할 수 있습니다.';
     }
-    function closeGuide() {
-      if (state.guide?.url) URL.revokeObjectURL(state.guide.url);
-      state.guide = null; $('guidePanel').hidden = true; $('guideImage').removeAttribute('src'); $('guideSvg').replaceChildren(); $('guideNumbers').replaceChildren(); resetGuideConfirmation();
+    function setBusy(value){state.busy=value;updateControls();}
+    async function api(path,payload) {
+      let response;try{response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Session-Token':SESSION_TOKEN},body:JSON.stringify(payload)});}catch(_){throw new Error('프로그램에 연결할 수 없습니다. 실행파일을 다시 열어 주세요.');}
+      let result;try{result=await response.json();}catch(_){const error=new Error('프로그램의 응답을 읽지 못했습니다. 다시 시도해 주세요.');error.httpStatus=response.status;error.errorCode='INVALID_RESPONSE';throw error;}
+      if(!response.ok || result?.error){const error=new Error(typeof result?.error==='string'?result.error:'요청을 처리하지 못했습니다.');error.httpStatus=response.status;error.errorCode=typeof result?.error_code==='string'?result.error_code:'';error.diagnostics=typeof result?.diagnostics==='string'?result.diagnostics:'';throw error;}return result;
     }
-    function guidePayload() {
-      const guide = state.guide;
-      return {schema:'local-trip-ui-v1', xs:[...guide.xs], body_top:guide.top, body_bottom:guide.bottom, row_count:guide.rowCount, image_width:guide.width, image_height:guide.height, confirmed:true};
+    function fileAsBase64(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(new Error('PDF 파일을 읽지 못했습니다. 다시 선택해 주세요.'));reader.readAsDataURL(file);});}
+    function readRates() {
+      const rates={};for(const [key,id] of Object.entries(rateIds)){const raw=$(id).value;const value=Number(raw);const maximum=key==='threshold_minutes'?1440:100000000;if(raw==='' || !Number.isSafeInteger(value) || value<(key==='threshold_minutes'?1:0) || value>maximum)throw new Error('지급기준은 0 이상의 정수로 입력해 주세요. 기준시간은 1~1,440분입니다.');rates[key]=value;}return rates;
     }
-    function guideNumberFields() {
-      const guide = state.guide; const host = $('guideNumbers'); host.replaceChildren();
-      for (const [kind, index, name] of [['top', 0, '본문 위쪽'], ['bottom', 0, '본문 아래쪽'], ...guide.xs.map((_, i) => ['column', i, i < 12 ? guideColumns[i] + ' 왼쪽' : '결재 오른쪽'])]) {
-        const label = document.createElement('label'); const title = document.createElement('span'); title.textContent = name; label.appendChild(title);
-        const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.max = '100'; input.step = '0.01'; input.dataset.guideKind = kind; input.dataset.guideIndex = String(index); input.setAttribute('aria-label', name + ' 위치 백분율');
-        input.addEventListener('input', () => resetGuideConfirmation());
-        input.addEventListener('change', () => {
-          const value = input.value === '' ? NaN : Number(input.value) / 100;
-          if (!Number.isFinite(value) || value < 0 || value > 1) {input.setAttribute('aria-invalid', 'true'); $('guideStatus').textContent = '선 위치는 0~100 사이의 숫자로 입력해 주세요.'; updateGuideReady(); return;}
-          if (kind === 'column') guide.xs[index] = value; else guide[kind] = value;
-          renderGuide(); $('guideStatus').textContent = validGuide(guide) ? '배치가 원본과 맞는지 확인한 뒤 아래 확인란을 표시해 주세요.' : '선이 겹치거나 표·행 크기가 맞지 않습니다. 세로선 순서와 본문 범위·행 수를 확인해 주세요.';
-        });
-        label.appendChild(input); host.appendChild(label);
-      }
+    function normalizedTrips(){return state.trips.map(trip=>{const item={...trip,include:included(trip)};for(const field of moneyFields)item[field]=numericValue(trip[field]);return item;});}
+    function durationMinutes(trip){if(![trip.start_date,trip.end_date,trip.start_time,trip.end_time].every(Boolean))return null;const convert=(day,time)=>Date.parse(day+'T'+time+(String(time).length===5?':00':'')+'Z');const start=convert(trip.start_date,trip.start_time),end=convert(trip.end_date,trip.end_time);return Number.isFinite(start)&&Number.isFinite(end)?(end-start)/60000:null;}
+    const invalidDuration = minutes => minutes !== null && (minutes<=0 || minutes>31*1440);
+    function costsKnown(trip){return costFields.every(field=>!missing(trip[field])&&validMoney(trip[field]));}
+    function updateClaim(trip,index){state.manual.delete(index+':claim_amount');trip.claim_amount=costsKnown(trip)?costFields.reduce((sum,field)=>sum+Number(trip[field]),0):null;}
+    function changed(trip,index,field) {
+      state.revision++;state.completed=false;$('step3').classList.remove('active');
+      if(calculationFields.has(field)){state.manual.delete(index+':daily_allowance');state.manual.delete(index+':claim_amount');state.calculationDirty=true;scheduleCalculation();}
+      else if(costFields.includes(field)){if(field==='daily_allowance')state.manual.set(index+':daily_allowance',true);updateClaim(trip,index);syncMoneyRow(index);}
+      else if(field==='claim_amount')state.manual.set(index+':claim_amount',true);
+      if(state.calculationDirty&&!calculationFields.has(field))scheduleCalculation();
+      updateSummary();updateControls();
     }
-    function svgGuideNode(tag, attrs = {}, text = null) {
-      const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
-      for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
-      if (text !== null) node.textContent = text;
-      return node;
+    function inputCell(trip,index,field,label,type='text',placeholder='') {
+      const input=document.createElement('input');input.type=type;input.value=missing(trip[field])?'':String(trip[field]);input.placeholder=placeholder;input.autocomplete='off';input.dataset.field=field;input.dataset.row=index;input.setAttribute('aria-label',(index+1)+'번 '+label);
+      if(type==='number'){input.min='0';input.max='100000000';input.step='1';input.inputMode='numeric';}else if(type==='text')input.maxLength=field==='purpose'?400:120;
+      input.addEventListener('input',()=>{trip[field]=type==='number'?(input.value===''?null:input.value):input.value;changed(trip,index,field);});return input;
     }
-    function moveGuideLine(kind, index, value) {
-      const guide = state.guide; if (!guide || state.busy) return;
-      if (kind === 'column') {
-        const gap = 4 / guide.width;
-        const lower = index ? Math.max(guide.xs[index - 1] + gap,index === 12 ? guide.xs[0] + 350 / guide.width : 0) : 0;
-        const upper = index < 12 ? Math.min(guide.xs[index + 1] - gap,index === 0 ? guide.xs[12] - 350 / guide.width : 1) : 1;
-        guide.xs[index] = Math.max(lower,Math.min(upper,value));
-      } else {
-        const gap = 10 * guide.rowCount / guide.height; const maximum = 300 * guide.rowCount / guide.height;
-        guide[kind] = kind === 'top' ? Math.max(0,guide.bottom-maximum,Math.min(guide.bottom-gap,value)) : Math.min(1,guide.top+maximum,Math.max(guide.top+gap,value));
-      }
-      resetGuideConfirmation(); renderGuide(); $('guideStatus').textContent = '선 위치가 변경되었습니다. 원본과 맞는지 확인한 뒤 아래 확인란을 다시 표시해 주세요.';
-    }
-    function renderGuide() {
-      const guide = state.guide; if (!guide) return;
-      const svg = $('guideSvg'); svg.replaceChildren(); svg.setAttribute('viewBox', '0 0 ' + guide.width + ' ' + guide.height);
-      const left = guide.xs[0] * guide.width; const right = guide.xs[12] * guide.width; const top = guide.top * guide.height; const bottom = guide.bottom * guide.height;
-      svg.append(svgGuideNode('rect', {x:0,y:0,width:guide.width,height:Math.max(0,top),fill:'#153b3e',opacity:.18}), svgGuideNode('rect', {x:0,y:bottom,width:guide.width,height:Math.max(0,guide.height-bottom),fill:'#153b3e',opacity:.18}));
-      for (let i = 0; i < 12; i++) {
-        const x = guide.xs[i] * guide.width; const width = (guide.xs[i+1] - guide.xs[i]) * guide.width;
-        if (i % 2 === 0) svg.appendChild(svgGuideNode('rect', {x,y:top,width:Math.max(0,width),height:Math.max(0,bottom-top),fill:'#31c8b4',opacity:.09}));
-        svg.appendChild(svgGuideNode('rect', {x:x+1,y:Math.max(0,top-21),width:Math.max(0,width-2),height:19,fill:'#e6fff9',opacity:.96}));
-        svg.appendChild(svgGuideNode('text', {x:x+width/2,y:Math.max(13,top-7),'text-anchor':'middle',class:'guide-label'}, guideColumns[i]));
-      }
-      const visibleRows = Number.isInteger(guide.rowCount) && guide.rowCount >= 1 && guide.rowCount <= 100 ? guide.rowCount : 1;
-      for (let i = 1; i < visibleRows; i++) {const y = top+(bottom-top)*i/visibleRows; svg.appendChild(svgGuideNode('line', {x1:left,y1:y,x2:right,y2:y,stroke:'#087b72','stroke-width':.7,'stroke-dasharray':'5 4','pointer-events':'none'}));}
-      function handle(kind, index, attrs, title) {
-        const group = svgGuideNode('g', {class:'guide-handle' + (kind === 'column' ? '' : ' horizontal'),tabindex:0,role:'slider','aria-label':title,'aria-valuemin':0,'aria-valuemax':100,'aria-valuenow':((kind === 'column' ? guide.xs[index] : guide[kind])*100).toFixed(2)});
-        group.append(svgGuideNode('line', {...attrs,class:'guide-hit'}), svgGuideNode('line', {...attrs,class:'guide-rule'}));
-        group.addEventListener('pointerdown', event => {
-          if (state.busy) return; event.preventDefault();
-          const pointerId = event.pointerId; const dragKind = kind; const dragIndex = index;
-          const move = next => {if (next.pointerId !== pointerId) return; const rect = svg.getBoundingClientRect(); moveGuideLine(dragKind,dragIndex,dragKind === 'column' ? (next.clientX-rect.left)/rect.width : (next.clientY-rect.top)/rect.height);};
-          const end = next => {if (next.pointerId !== pointerId) return; window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',end); window.removeEventListener('pointercancel',end);};
-          window.addEventListener('pointermove',move); window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
-        });
-        group.addEventListener('keydown', event => {const direction = ['ArrowLeft','ArrowUp'].includes(event.key) ? -1 : ['ArrowRight','ArrowDown'].includes(event.key) ? 1 : 0; if (!direction) return; event.preventDefault(); const value = kind === 'column' ? guide.xs[index] : guide[kind]; moveGuideLine(kind,index,value+direction*(event.shiftKey ? 10 : 1)/(kind === 'column' ? guide.width : guide.height)); const handles = svg.querySelectorAll('[role="slider"]'); handles[kind === 'column' ? index : kind === 'top' ? 13 : 14]?.focus();});
-        svg.appendChild(group);
-      }
-      for (let i = 0; i < 13; i++) {const x = guide.xs[i] * guide.width; handle('column',i,{x1:x,y1:Math.max(0,top-24),x2:x,y2:bottom},i < 12 ? guideColumns[i]+' 왼쪽 경계' : '결재 오른쪽 경계');}
-      handle('top',0,{x1:left,y1:top,x2:right,y2:top},'본문 첫 행 위쪽 경계'); handle('bottom',0,{x1:left,y1:bottom,x2:right,y2:bottom},'본문 마지막 행 아래쪽 경계');
-      $('guideRows').value = String(guide.rowCount);
-      for (const input of $('guideNumbers').querySelectorAll('input')) {const value = input.dataset.guideKind === 'column' ? guide.xs[Number(input.dataset.guideIndex)] : guide[input.dataset.guideKind]; input.value = (value*100).toFixed(2); input.removeAttribute('aria-invalid');}
-      updateGuideReady();
-    }
-    function presetGuide() {
-      if (!state.guide) return;
-      Object.assign(state.guide,{xs:[...guidePresetXs],top:89/381,bottom:369/381,rowCount:10}); resetGuideConfirmation(); renderGuide();
-      $('guideStatus').textContent = '근무지내 목록의 예시 배치입니다. 자동 확정된 배치가 아니므로 원본과 선·행 수를 맞춰 주세요.';
-    }
-    async function openGuide() {
-      const file = state.attemptFile; if (!file || isPdf(file) || state.busy) return;
-      if (state.guide?.file === file) {$('guidePanel').hidden = false; $('imagePreview').open = false; $('guidePanel').scrollIntoView({block:'start',behavior:'smooth'}); return;}
-      closeGuide(); setBusy(true); const url = URL.createObjectURL(file);
-      try {
-        const image = $('guideImage'); const loaded = new Promise((resolve,reject) => {image.onload = resolve; image.onerror = () => reject(new Error('캡처 이미지를 표시하지 못했습니다. 다른 이미지 파일을 선택해 주세요.'));}); image.src = url; await loaded;
-        state.guide = {file,url,width:image.naturalWidth,height:image.naturalHeight,xs:[...guidePresetXs],top:89/381,bottom:369/381,rowCount:10};
-        $('guideBoard').style.width = Math.max(960,image.naturalWidth)+'px'; $('guideName').textContent = file.name || '캡처'; $('guidePanel').hidden = false; $('imagePreview').open = false; guideNumberFields(); presetGuide(); $('guidePanel').scrollIntoView({block:'start',behavior:'smooth'});
-        setBusy(true); $('guideStatus').textContent = '원본의 표선 후보를 확인하고 있습니다…';
-        try {
-          const result = await api('/api/layout',{filename:file.name || '캡처.png',data:await fileAsBase64(file)}); const hint = result.layout;
-          const candidate = hint && {xs:hint.xs,top:hint.body_top,bottom:hint.body_bottom,rowCount:hint.row_count,width:image.naturalWidth,height:image.naturalHeight};
-          if (Array.isArray(candidate?.xs) && validGuide(candidate) && hint.image_width === image.naturalWidth && hint.image_height === image.naturalHeight) {Object.assign(state.guide,candidate); renderGuide(); $('guideStatus').textContent = hint.hint_source === 'grid' ? '원본 표선에서 배치 후보를 표시했습니다. 원본과 선·행 수가 맞는지 직접 확인해 주세요.' : '예시 배치 후보를 표시했습니다. 원본과 선·행 수를 맞춰 주세요.';}
-          else {$('guideStatus').textContent = '자동 확정되지 않은 예시 배치입니다. 원본과 선·행 수를 맞춰 주세요.';}
-        } catch (_) {$('guideStatus').textContent = '표선 후보를 가져오지 못해 예시 배치를 표시했습니다. 원본과 선·행 수를 맞춰 주세요.';}
-        resetGuideConfirmation();
-      } catch (err) {URL.revokeObjectURL(url); closeGuide(); showError(err);}
-      finally {setBusy(false);}
-    }
-
-    function showMessage(text, kind = 'loading') {
-      $('diagnosticBox').hidden = true; $('diagnosticBox').open = false; $('diagnosticText').value = ''; $('copyDiagnosticStatus').textContent = '';
-      const node = $('message'); node.textContent = ''; node.className = 'message ' + kind;
-      if (kind === 'loading') {const spinner = document.createElement('span'); spinner.className = 'spinner'; spinner.setAttribute('aria-hidden', 'true'); node.appendChild(spinner);}
-      node.appendChild(document.createTextNode(text)); node.hidden = false;
-    }
-    function showError(err, extra = '') {
-      showMessage(errorText(err) + extra, 'error');
-      const code = typeof err?.errorCode === 'string' ? err.errorCode.slice(0, 160) : '';
-      const diagnostic = typeof err?.diagnostics === 'string' ? err.diagnostics.slice(0, 6000) : '';
-      const status = Number.isInteger(err?.httpStatus) ? err.httpStatus : null;
-      if (!code && !diagnostic && status === null) return;
-      const lines = ['화면 버전: v' + APP_VERSION];
-      if (code) lines.push('오류 코드: ' + code);
-      if (status !== null) lines.push('HTTP 상태: ' + status);
-      if (diagnostic) lines.push(diagnostic);
-      $('diagnosticText').value = lines.join('\n'); $('diagnosticBox').hidden = false;
-    }
-    function setBusy(value) {
-      state.busy = value;
-      for (const id of ['selectButton','exitButton','fileInput','retryButton','previousSourceButton','openImageButton','copyDiagnosticButton','guideButton','guideCloseButton','guidePresetButton','officerTitle','officerName','ratesConfirmed','dataConfirmed',...Object.values(rateIds)]) $(id).disabled = value;
-      $('renderButton').disabled = value || !state.trips.some(included); $('recalculateButton').disabled = value || !state.trips.some(included); $('tripRows').inert = value; $('guideControls').disabled = value; $('guideSvg').inert = value; updateGuideReady();
-    }
-    async function api(path, data) {
-      let response;
-      try {response = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Session-Token': SESSION_TOKEN}, body: JSON.stringify(data)});}
-      catch (_) {throw new Error('프로그램에 연결할 수 없습니다. 실행파일을 다시 열어 주세요.');}
-      let result;
-      try {result = await response.json();} catch (_) {
-        const failure = new Error('프로그램에서 올바른 응답을 받지 못했습니다. 다시 시도해 주세요.');
-        failure.httpStatus = response.status; failure.errorCode = 'INVALID_RESPONSE'; throw failure;
-      }
-      if (!response.ok || result.error) {
-        const failure = new Error(typeof result.error === 'string' ? result.error : (result.message || '요청을 처리하지 못했습니다.'));
-        failure.httpStatus = response.status;
-        failure.errorCode = typeof result.error_code === 'string' ? result.error_code : '';
-        failure.diagnostics = typeof result.diagnostics === 'string' ? result.diagnostics : '';
-        throw failure;
-      }
-      return result;
-    }
-    function fileAsBase64(file) {return new Promise((resolve, reject) => {const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = () => reject(new Error('파일을 읽지 못했습니다. 다른 파일로 다시 시도해 주세요.')); reader.readAsDataURL(file);});}
-    function showPreview(file, previewData = null, previewNote = '') {
-      if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
-      state.previewFile = file; state.previewUrl = URL.createObjectURL(file);
-      const pdf = isPdf(file); const hasPreview = pdf && typeof previewData === 'string' && previewData.length > 0;
-      $('sourceImage').hidden = pdf && !hasPreview; $('pdfPlaceholder').hidden = !pdf || hasPreview;
-      if (pdf && !hasPreview) $('sourceImage').removeAttribute('src');
-      else $('sourceImage').src = hasPreview ? 'data:image/png;base64,' + previewData : state.previewUrl;
-      $('sourceImage').alt = (file.name || '캡처') + (pdf ? ' PDF 첫 페이지 미리보기' : ' 원본 이미지');
-      $('openImageButton').textContent = pdf ? 'PDF 원본 열기' : '크게 보기';
-      $('previewNote').textContent = previewNote || ''; $('previewNote').hidden = !previewNote;
-      $('previewFileName').textContent = file.name || '캡처'; $('imagePreview').hidden = false;
-    }
-    async function loadFile(file, retry = false, layout = null) {
-      if (state.busy || !file) return;
-      if (!isPdf(file) && !/\.(png|jpe?g|webp|bmp)$/i.test(file.name) && !/^image\/(png|jpeg|webp|bmp|x-ms-bmp)$/i.test(file.type)) {showMessage('PNG, JPG, WebP, BMP 캡처 이미지 또는 PDF 파일을 선택해 주세요.', 'error'); return;}
-      if (file.size > 20 * 1024 * 1024) {showMessage('파일 크기가 20MB를 넘습니다. 필요한 출장 내역만 포함한 파일을 선택해 주세요.', 'error'); return;}
-      if (!file.size) {showMessage('비어 있는 파일입니다. 다른 파일을 선택해 주세요.', 'error'); return;}
-      if (state.trips.length && !retry && !window.confirm('새 자료 인식이 성공하면 현재 화면에서 수정한 내역이 교체됩니다. 계속할까요?')) return;
-      if (state.guide && state.guide.file !== file) closeGuide();
-      state.attemptFile = file; showPreview(file); if (isPdf(file)) $('imagePreview').open = true; const kind = inputKind(file);
-      $('uploadTitle').textContent = file.name || '캡처'; $('selectButton').textContent = '다른 캡처 / PDF 선택';
-      $('uploadSubtitle').textContent = '인식 중 · 새 자료 인식이 성공하면 출장 내역이 표시됩니다.';
-      $('previewStatus').classList.remove('failed'); $('previewStatus').textContent = '이 ' + kind + '에서 출장 내역을 읽고 있습니다.';
-      $('retryButton').hidden = true; $('retryButton').textContent = '이 ' + kind + ' 다시 인식'; $('previousSourceButton').hidden = true; $('guideButton').hidden = true;
-      setBusy(true); showMessage(kind + '에서 출장 내역을 인식하는 중입니다… 잠시 기다려 주세요.');
-      try {
-        const result = await api('/api/parse', {filename: file.name || (isPdf(file) ? '자료.pdf' : '캡처.png'), data: await fileAsBase64(file), ...(layout ? {layout} : {})});
-        if (!Array.isArray(result.trips) || !result.trips.length) throw new Error('인식된 출장 내역이 없습니다. 출장 목록 표가 포함된 캡처 또는 PDF인지 확인해 주세요.');
-        state.trips = result.trips.map(trip => ({...trip, include: trip.include !== false})); state.warnings = Array.isArray(result.warnings) ? result.warnings.map(String) : []; state.sourceName = result.source_name || file.name || '캡처'; state.sourceFile = file; state.sourcePreviewData = isPdf(file) ? (result.preview_data || null) : null; state.sourcePreviewNote = String(result.preview_note || ''); state.approvalPolicy = result.approval_policy || 'from_image'; state.completed = false; state.calculationDirty = false;
-        closeGuide(); $('guideButton').hidden = true;
-        const approvedPdf = state.approvalPolicy === 'source_system_approved_export';
-        $('dataConfirmedLabel').textContent = approvedPdf ? 'PDF 내용과 청구대상을 확인했습니다.' : 'OCR 내용과 지급대상(결재상태)을 원본과 대조해 확인했습니다.';
-        $('confirmationHelp').textContent = approvedPdf ? '지급기준과 PDF 내용을 확인하고 필수 정보가 충족되면 최종 명세서로 저장합니다.' : '두 항목을 확인하고 필수 정보와 결재상태가 충족되면 최종 명세서로 저장합니다.';
-        $('approvalPolicyNote').hidden = !approvedPdf;
-        $('officerTitle').value = ''; $('officerName').value = ''; $('ratesConfirmed').checked = false; $('dataConfirmed').checked = false;
-        for (const [key,id] of Object.entries(rateIds)) $(id).value = (result.rates && result.rates[key] !== undefined) ? result.rates[key] : defaultRates[key];
-        showPreview(file, state.sourcePreviewData, state.sourcePreviewNote);
-        $('uploadTitle').textContent = state.sourceName; $('uploadSubtitle').textContent = '캡처는 Ctrl+V로 붙여넣거나 파일을 선택하세요. PDF도 선택할 수 있습니다.';
-        $('previewStatus').textContent = '아래 출장 내역의 원본 자료입니다. 인식 내용과 대조해 주세요.'; $('imagePreview').open = false;
-        $('emptyState').hidden = true; $('workspace').hidden = false; $('sourceName').textContent = state.sourceName;
-        $('step1').classList.remove('active'); $('step2').classList.add('active'); $('step3').classList.remove('active');
-        renderRows(); updateSummary(); showMessage('출장 ' + state.trips.length + '건을 인식했습니다. ' + (approvedPdf ? 'PDF 내용과 실제 출장시간·공용차량·금액을 확인해 주세요.' : '실제 출장시간·공용차량·결재상태를 원본과 확인해 주세요.'), 'success');
-      } catch (err) {
-        $('imagePreview').open = true; $('retryButton').hidden = false; $('guideButton').hidden = isPdf(file);
-        if (layout) {resetGuideConfirmation(); $('guideStatus').textContent = '이 배치로 인식하지 못했습니다. 원본과 선·행 수를 다시 맞춰 주세요.';}
-        $('uploadSubtitle').textContent = '인식 실패 · 원본을 확인한 뒤 다시 인식하거나 다른 캡처 / PDF를 선택해 주세요.';
-        $('previewStatus').classList.add('failed');
-        const retained = state.trips.length ? '아래 표에는 이전 자료 “' + state.sourceName + '”의 ' + state.trips.length + '건이 그대로 유지됩니다. 새 자료의 인식 결과가 아닙니다.' : '아직 출장 내역으로 변환되지 않았습니다. 표의 열 제목과 글자가 모두 보이는지 확인해 주세요.';
-        $('previewStatus').textContent = '인식 실패 · 원본 확인 필요. ' + retained;
-        $('previousSourceButton').hidden = !state.sourceFile || state.sourceFile === file;
-        if (!state.trips.length) {
-          $('emptyTitle').textContent = kind + '를 인식하지 못했습니다.'; $('emptyText').textContent = '위 원본을 확인하고 “이 ' + kind + ' 다시 인식”을 누르거나 다른 캡처 / PDF를 선택해 주세요.';
-          $('step1').classList.add('active'); $('step2').classList.remove('active'); $('step3').classList.remove('active');
-        }
-        showError(err, '\n' + retained);
-      } finally {setBusy(false); $('fileInput').value = '';}
-    }
-    function markEdited(field) {
-      state.completed = false; $('dataConfirmed').checked = false; $('step3').classList.remove('active');
-      if (calculationFields.has(field) || field === 'include') {state.calculationDirty = true; $('ratesConfirmed').checked = false;}
-    }
-    function inputCell(trip, index, field, label, type = 'text', placeholder = '') {
-      const input = document.createElement('input'); input.type = type; input.value = isMissing(trip[field]) ? '' : String(trip[field]); input.placeholder = placeholder; input.autocomplete = 'off'; input.setAttribute('aria-label', (index + 1) + '번 ' + label);
-      if (type === 'number') {input.min = '0'; input.max = '999999999'; input.step = '1'; input.inputMode = 'numeric';}
-      else if (type === 'text') input.maxLength = (field === 'purpose' ? 400 : 120);
-      input.dataset.field = field; input.dataset.row = index;
-      input.addEventListener('input', () => {trip[field] = type === 'number' ? (input.value === '' ? null : input.value) : input.value; markEdited(field); updateSummary();});
-      return input;
-    }
-    function selectCell(trip, index, field, label, options) {
-      const select = document.createElement('select'); select.setAttribute('aria-label', (index + 1) + '번 ' + label); select.dataset.field = field; select.dataset.row = index;
-      for (const [value, text] of options) {const option = document.createElement('option'); option.value = value; option.textContent = text; select.appendChild(option);}
-      select.value = isMissing(trip[field]) ? '' : trip[field];
-      if (!select.value && field === 'vehicle') {select.value = 'unknown'; trip[field] = 'unknown';}
-      select.addEventListener('change', () => {trip[field] = select.value; markEdited(field); updateSummary();}); return select;
-    }
+    function selectCell(trip,index,field,label,options){const select=document.createElement('select');select.dataset.field=field;select.dataset.row=index;select.setAttribute('aria-label',(index+1)+'번 '+label);for(const [value,text]of options){const option=document.createElement('option');option.value=value;option.textContent=text;select.appendChild(option);}select.value=missing(trip[field])?'':trip[field];if(!select.value&&field==='vehicle')select.value='unknown';select.addEventListener('change',()=>{trip[field]=select.value;changed(trip,index,field);});return select;}
     function renderRows() {
-      const fragment = document.createDocumentFragment();
-      state.trips.forEach((trip, index) => {
-        const row = document.createElement('tr'); row.dataset.index = index;
-        function cell(content) {const td = document.createElement('td'); if (content) td.appendChild(content); row.appendChild(td); return td;}
-        const number = document.createElement('div'); number.className = 'row-n';
-        const include = document.createElement('input'); include.type = 'checkbox'; include.className = 'include-checkbox'; include.checked = included(trip); include.setAttribute('aria-label', (index + 1) + '번 출장 청구에 포함'); include.addEventListener('change', () => {trip.include = include.checked; markEdited('include'); updateSummary();}); number.appendChild(include); number.appendChild(document.createTextNode(' ' + (index + 1)));
-        const first = cell(number); const status = document.createElement('div'); status.className = 'row-state'; status.id = 'rowState' + index; first.appendChild(status);
-        const identity = document.createElement('div'); identity.className = 'stack'; identity.append(inputCell(trip, index, 'department', '소속', 'text', '소속'), inputCell(trip, index, 'rank', '직급', 'text', '직급')); cell(identity);
-        cell(inputCell(trip, index, 'name', '성명', 'text', '확인 필요'));
-        const dates = document.createElement('div');
-        for (const [dateKey, timeKey, title] of [['start_date', 'start_time', '실제 출발'], ['end_date', 'end_time', '실제 복귀']]) {const line = document.createElement('div'); line.className = 'date-line'; line.append(inputCell(trip, index, dateKey, title + '일', 'date'), inputCell(trip, index, timeKey, title + '시각', 'time')); dates.appendChild(line);}
-        const duration = document.createElement('span'); duration.className = 'duration'; duration.id = 'duration' + index; dates.appendChild(duration);
-        if (trip.requested_start_time || trip.requested_end_time) {const requested = document.createElement('div'); requested.className = 'requested-time'; requested.textContent = '신청시간: ' + (trip.requested_start_time || '미확인') + ' ~ ' + (trip.requested_end_time || '미확인'); dates.appendChild(requested);}
-        cell(dates);
-        cell(selectCell(trip, index, 'scope', '출장구분', [['', '확인 필요'], ['관내', '관내'], ['관외', '관외']]));
-        cell(selectCell(trip, index, 'vehicle', '공용차량 사용 여부', [['unknown', '확인 필요'], ['used', '사용'], ['unused', '미사용']]));
-        cell(inputCell(trip, index, 'approval_status', '결재상태, 원본 대조', 'text', '확인 필요'));
-        cell(inputCell(trip, index, 'destination', '출장지', 'text', '확인 필요')); cell(inputCell(trip, index, 'purpose', '출장목적', 'text', '확인 필요'));
-        for (const [field, label] of [['daily_allowance', '일비'], ['meal', '식비'], ['lodging', '숙박비'], ['transport', '교통비'], ['other', '기타']]) cell(inputCell(trip, index, field, label, 'number', '미확인'));
-        const sum = document.createElement('span'); sum.className = 'row-total'; sum.id = 'rowTotal' + index; cell(sum);
-        cell(inputCell(trip, index, 'claim_amount', '청구액', 'number', '미확인')); fragment.appendChild(row);
-      }); $('tripRows').replaceChildren(fragment);
+      const fragment=document.createDocumentFragment();state.trips.forEach((trip,index)=>{const row=document.createElement('tr');row.dataset.index=index;const cell=content=>{const td=document.createElement('td');if(content)td.appendChild(content);row.appendChild(td);};
+        const order=document.createElement('div');order.className='row-n';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.className='include-checkbox';checkbox.checked=included(trip);checkbox.setAttribute('aria-label',(index+1)+'번 출장 청구에 포함');checkbox.addEventListener('change',()=>{trip.include=checkbox.checked;changed(trip,index,'include');});order.append(checkbox,document.createTextNode(' '+(index+1)));const status=document.createElement('div');status.id='rowState'+index;status.className='row-state';order.appendChild(status);cell(order);
+        const identity=document.createElement('div');identity.className='stack';identity.append(inputCell(trip,index,'department','소속','text','소속'),inputCell(trip,index,'rank','직급','text','직급 · 선택'));cell(identity);cell(inputCell(trip,index,'name','성명','text','성명'));
+        const period=document.createElement('div');for(const [day,time,label]of [['start_date','start_time','출발'],['end_date','end_time','복귀']]){const line=document.createElement('div');line.className='date-line';line.append(inputCell(trip,index,day,label+'일','date'),inputCell(trip,index,time,'실제 '+label+' 시각','time'));period.appendChild(line);}const duration=document.createElement('span');duration.id='duration'+index;duration.className='duration';period.appendChild(duration);cell(period);
+        cell(selectCell(trip,index,'scope','출장구분',[['','확인 필요'],['관내','관내'],['관외','관외']]));cell(selectCell(trip,index,'vehicle','공용차량',[['unknown','확인 필요'],['unused','미사용'],['used','사용']]));cell(inputCell(trip,index,'destination','출장지','text','출장지'));cell(inputCell(trip,index,'purpose','출장목적','text','출장목적'));
+        for(const [field,label]of [['daily_allowance','일비'],['meal','식비'],['lodging','숙박비'],['transport','교통비'],['other','기타']])cell(inputCell(trip,index,field,label,'number','미확인'));
+        const total=document.createElement('span');total.id='rowTotal'+index;total.className='row-total';cell(total);cell(inputCell(trip,index,'claim_amount','청구액','number','미확인'));fragment.appendChild(row);
+      });$('tripRows').replaceChildren(fragment);
     }
-    function durationMinutes(trip) {
-      if (![trip.start_date, trip.end_date, trip.start_time, trip.end_time].every(Boolean)) return null;
-      const dateTime = (date, time) => Date.parse(date + 'T' + time + (String(time).length === 5 ? ':00' : '') + 'Z');
-      const start = dateTime(trip.start_date, trip.start_time); const end = dateTime(trip.end_date, trip.end_time);
-      return Number.isFinite(start) && Number.isFinite(end) ? (end - start) / 60000 : null;
-    }
-    const invalidDuration = minutes => minutes !== null && (minutes <= 0 || minutes > 31 * 1440);
-    function problems(trip) {
-      const result = [];
-      for (const [field, label] of [['department', '소속'], ['rank', '직급'], ['name', '성명'], ['start_date', '출발일'], ['end_date', '복귀일'], ['start_time', '실제 출발 시각'], ['end_time', '실제 복귀 시각'], ['scope', '출장구분'], ['destination', '출장지'], ['purpose', '출장목적']]) if (isMissing(trip[field]) || !String(trip[field]).trim()) result.push(label);
-      if (!trip.vehicle || trip.vehicle === 'unknown') result.push('공용차량');
-      for (const field of moneyFields) if (isMissing(trip[field])) result.push(field === 'claim_amount' ? '청구액' : ({daily_allowance:'일비',meal:'식비',lodging:'숙박비',transport:'교통비',other:'기타'})[field]);
-      if (!approved(trip)) result.push('결재상태'); if (trip.scope === '관외') result.push('관외 지급기준 별도 검토');
-      if (moneyFields.some(field => !validMoney(trip[field]))) result.push('금액 형식'); const duration = durationMinutes(trip); if (invalidDuration(duration)) result.push('출장기간 확인');
-      return result;
-    }
-    function readRates() {const rates = {}; for (const [key,id] of Object.entries(rateIds)) {const raw = $(id).value; const value = Number(raw); if (raw === '' || !Number.isSafeInteger(value) || value < (key === 'threshold_minutes' ? 1 : 0) || value > (key === 'threshold_minutes' ? 1440 : 999999999)) throw new Error('지급기준을 확인해 주세요. 금액은 0 이상의 정수, 기준시간은 1~1440분으로 입력해야 합니다.'); rates[key] = value;} return rates;}
-    function normalizedTrips() {return state.trips.map(trip => {const normalized = {...trip, include: included(trip)}; for (const field of moneyFields) normalized[field] = numericValue(trip[field]); return normalized;});}
+    function syncMoneyRow(index){for(const field of moneyFields){const input=document.querySelector('[data-row="'+index+'"][data-field="'+field+'"]');if(input&&document.activeElement!==input)input.value=missing(state.trips[index][field])?'':String(state.trips[index][field]);}}
+    function problems(trip){const issues=[];for(const[field,label]of [['department','소속'],['name','성명'],['start_date','출발일'],['end_date','복귀일'],['start_time','실제 출발 시각'],['end_time','실제 복귀 시각'],['scope','출장구분'],['destination','출장지'],['purpose','출장목적']])if(missing(trip[field]))issues.push(label);if(!trip.vehicle||trip.vehicle==='unknown')issues.push('공용차량');for(const field of moneyFields)if(missing(trip[field]))issues.push(({daily_allowance:'일비',meal:'식비',lodging:'숙박비',transport:'교통비',other:'기타',claim_amount:'청구액'})[field]);if(trip.approval_status&&trip.approval_status!=='결재완료')issues.push('원본 상태 '+trip.approval_status);if(invalidDuration(durationMinutes(trip)))issues.push('출장기간');return issues;}
     function updateSummary() {
-      let reviewCount = 0; let total = 0; let includedCount = 0; const hasMissing = []; const hasInvalid = []; const pending = []; const warnings = [...state.warnings];
-      state.trips.forEach((trip, index) => {
-        const use = included(trip); if (use) includedCount++;
-        const issues = problems(trip); if (use && issues.length) {reviewCount++; hasMissing.push(index + 1);} if (use && !approved(trip)) pending.push(index + 1);
-        const duration = durationMinutes(trip); const isInvalid = invalidDuration(duration);
-        document.querySelector('tr[data-index="' + index + '"]').classList.toggle('excluded', !use);
-        $('rowState' + index).textContent = !use ? '청구 제외' : issues.length ? '확인 필요' : '입력 완료'; $('rowState' + index).title = issues.join(', ');
-        $('duration' + index).textContent = duration === null ? '실제 출장시간: 확인 필요' : isInvalid ? '출장기간은 0분 초과·31일 이하여야 합니다' : '실제 ' + Math.floor(duration / 60) + '시간 ' + (duration % 60) + '분';
-        const costs = moneyFields.filter(field => field !== 'claim_amount'); const allKnown = costs.every(field => !isMissing(trip[field]) && validMoney(trip[field]));
-        $('rowTotal' + index).textContent = allKnown ? formatNumber(costs.reduce((sum, field) => sum + Number(trip[field]), 0)) : '확인 필요';
-        if (use && !isMissing(trip.claim_amount) && validMoney(trip.claim_amount)) total += Number(trip.claim_amount);
-        for (const element of document.querySelectorAll('[data-row="' + index + '"]')) {
-          const field = element.dataset.field; const value = trip[field];
-          element.classList.toggle('needs-check', use && (isMissing(value) || (field === 'vehicle' && value === 'unknown') || (field === 'approval_status' && !approved(trip))));
-          const invalid = use && ((moneyFields.includes(field) && !validMoney(value)) || (isInvalid && ['end_date','end_time'].includes(field))); element.classList.toggle('invalid', invalid); element.setAttribute('aria-invalid', String(invalid)); if (invalid) hasInvalid.push(index + 1);
-        }
+      let count=0,total=0,review=0;const warnings=[...state.warnings],invalid=[];const paid=new Map();let rates=null;try{rates=readRates();}catch(_){}
+      state.trips.forEach((trip,index)=>{const use=included(trip),issues=problems(trip);if(use){count++;if(issues.length)review++;if(!missing(trip.claim_amount)&&validMoney(trip.claim_amount))total+=Number(trip.claim_amount);if(moneyFields.some(field=>!validMoney(trip[field]))||invalidDuration(durationMinutes(trip)))invalid.push(index+1);const key=[trip.department,trip.name,trip.start_date].join('\u0001');paid.set(key,(paid.get(key)||0)+(Number(trip.daily_allowance)||0));}
+        const row=document.querySelector('tr[data-index="'+index+'"]');row.classList.toggle('excluded',!use);const sourceStatus=trip.approval_status&&trip.approval_status!=='결재완료'?' · '+trip.approval_status:'';$('rowState'+index).textContent=(!use?'청구 제외':issues.length?'확인 필요':'포함')+sourceStatus;$('rowState'+index).title=issues.join(', ');
+        const duration=durationMinutes(trip);$('duration'+index).textContent=duration===null?'실제 시간 확인 필요':invalidDuration(duration)?'출장기간 확인 필요':'실제 '+Math.floor(duration/60)+'시간 '+duration%60+'분';$('rowTotal'+index).textContent=costsKnown(trip)?formatNumber(costFields.reduce((sum,field)=>sum+Number(trip[field]),0)):'확인 필요';
+        for(const input of row.querySelectorAll('[data-field]')){const field=input.dataset.field;input.classList.toggle('needs-check',use&&field!=='rank'&&(missing(trip[field])||field==='vehicle'&&trip[field]==='unknown'));const bad=use&&(moneyFields.includes(field)&&!validMoney(trip[field])||invalidDuration(duration)&&['start_date','end_date','start_time','end_time'].includes(field));input.classList.toggle('invalid',bad);input.setAttribute('aria-invalid',String(bad));}
       });
-      $('tripCount').textContent = formatNumber(includedCount); $('countBadge').textContent = '전체 ' + state.trips.length + '건 · 포함 ' + includedCount + '건'; $('reviewCount').textContent = formatNumber(reviewCount); $('claimTotal').textContent = formatNumber(total);
-      if (hasMissing.length) warnings.push('확인 필요 ' + reviewCount + '건: ' + hasMissing.slice(0,15).join(', ') + '번' + (hasMissing.length > 15 ? ' 외' : '') + '. 인식 내용과 누락 정보를 원본과 확인하세요.');
-      if (pending.length) warnings.push('결재완료가 아닌 ' + pending.slice(0,15).join(', ') + '번은 지급대상인지 확인해 주세요. 포함한 채 저장하면 검토용 초안이 됩니다.');
-      if (hasInvalid.length) warnings.push('붉은색으로 표시된 금액 또는 출장기간을 수정해야 저장할 수 있습니다.');
-      if (state.calculationDirty) warnings.push('시간·차량·대상 또는 지급기준이 변경되었습니다. 일비 다시 계산 후 지급기준을 확인해 주세요.');
-      if (!$('ratesConfirmed').checked || !$('dataConfirmed').checked) warnings.push('지급기준과 OCR 내용 확인을 마치지 않았습니다. 현재는 검토용 PDF로 저장합니다.');
-      const list = $('reviewList'); list.replaceChildren(); [...new Set(warnings)].forEach(text => {const item = document.createElement('li'); item.textContent = text; list.appendChild(item);}); $('reviewBox').hidden = !warnings.length;
-      const draft = reviewCount > 0 || state.calculationDirty || !$('ratesConfirmed').checked || !$('dataConfirmed').checked;
-      $('renderLabel').textContent = draft ? '검토용 PDF 저장' : '명세서 PDF 저장'; $('renderButton').disabled = state.busy || !includedCount; $('recalculateButton').disabled = state.busy || !includedCount;
+      $('tripCount').textContent=formatNumber(count);$('claimTotal').textContent=formatNumber(total);$('reviewCount').textContent=formatNumber(review);$('countBadge').textContent='전체 '+state.trips.length+'건 · 포함 '+count+'건';
+      if(review)warnings.push('포함한 '+review+'건에 비어 있거나 확인할 항목이 있습니다. 노란색 칸을 원본 PDF와 대조해 주세요.');if(invalid.length)warnings.push(invalid.join(', ')+'번의 붉은색 금액·출장기간을 수정한 뒤 저장해 주세요.');if(rates&&[...paid.values()].some(value=>value>rates.daily_cap))warnings.push('동일인·동일 날짜의 일비가 설정한 상한을 넘습니다. 금액을 확인해 주세요.');
+      const unique=[...new Set(warnings)];$('reviewList').replaceChildren();for(const text of unique){const item=document.createElement('li');item.textContent=text;$('reviewList').appendChild(item);}$('warningCount').textContent=unique.length?'· '+unique.length+'개':'';$('reviewBox').hidden=!unique.length;updateControls();
     }
-    async function recalculate() {
-      if (state.busy || !state.trips.some(included)) return; let rates;
-      try {rates = readRates();} catch (err) {showError(err); return;}
-      setBusy(true); showMessage('확인된 실제 출장시간과 차량 사용 여부로 일비를 다시 계산합니다…');
-      try {
-        const result = await api('/api/recalculate', {trips: normalizedTrips(), rates});
-        if (!Array.isArray(result.trips) || !result.trips.length) throw new Error('계산된 출장 내역이 없습니다. 입력 정보를 확인해 주세요.');
-        state.trips = result.trips.map(trip => ({...trip, include: trip.include !== false})); state.warnings = Array.isArray(result.warnings) ? result.warnings.map(String) : []; state.calculationDirty = false; state.completed = false; $('ratesConfirmed').checked = false; $('dataConfirmed').checked = false; $('step3').classList.remove('active');
-        renderRows(); updateSummary(); showMessage('일비를 다시 계산했습니다. 변경된 금액과 동일인·동일일 상한 적용 결과를 확인해 주세요.', 'success');
-      } catch (err) {showError(err);} finally {setBusy(false);}
+    function scheduleCalculation(){clearTimeout(state.timer);if(state.busy){state.timer=null;updateControls();return;}state.timer=setTimeout(()=>{state.timer=null;calculateNow().catch(error=>{state.calculationError=true;showError(error);});},450);updateControls();}
+    async function calculateNow() {
+      clearTimeout(state.timer);state.timer=null;if(!state.calculationDirty||!state.trips.length)return;
+      if(state.calculationPromise){await state.calculationPromise;if(state.calculationDirty)return calculateNow();return;}
+      let rates;try{rates=readRates();if(state.trips.some(trip=>moneyFields.some(field=>!validMoney(trip[field]))))throw new Error('붉은색으로 표시된 금액을 확인해 주세요. 금액은 0 이상의 정수로 입력해야 합니다.');}catch(error){state.calculationError=true;throw error;}const revision=state.revision,payload=normalizedTrips();state.calculating=true;updateControls();
+      const task=api('/api/recalculate',{trips:payload,rates}).then(result=>{if(!Array.isArray(result.trips)||result.trips.length!==state.trips.length)throw new Error('계산한 내역을 읽지 못했습니다. 다시 시도해 주세요.');if(revision!==state.revision)return;
+        result.trips.forEach((calculated,index)=>{const trip=state.trips[index],daily=trip.daily_allowance,claim=trip.claim_amount;Object.assign(trip,calculated);if(state.manual.has(index+':daily_allowance'))trip.daily_allowance=daily;if(state.manual.has(index+':claim_amount'))trip.claim_amount=claim;else if(state.manual.has(index+':daily_allowance'))trip.claim_amount=costsKnown(trip)?costFields.reduce((sum,field)=>sum+Number(trip[field]),0):null;syncMoneyRow(index);});state.warnings=Array.isArray(result.warnings)?result.warnings.map(String):[];state.calculationDirty=false;updateSummary();if(state.calculationError){state.calculationError=false;showMessage('변경한 내용으로 금액을 자동 계산했습니다.','success');}
+      }).catch(error=>{state.calculationError=true;throw error;}).finally(()=>{state.calculationPromise=null;state.calculating=false;updateControls();});state.calculationPromise=task;await task;
+      if(state.calculationDirty&&revision!==state.revision)scheduleCalculation();
     }
-    function downloadPdf(base64, filename) {
-      const binary = atob(base64); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const url = URL.createObjectURL(new Blob([bytes], {type: 'application/pdf'})); const link = document.createElement('a'); link.href = url; link.download = String(filename || '여비지급명세서.pdf').replace(/[\\/]/g, '_'); document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+    async function loadFile(file) {
+      if(state.busy||!file)return;
+      if(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'){showMessage('PDF 파일을 선택해 주세요.','error');$('fileInput').value='';return;}if(!file.size||file.size>20*1024*1024){showMessage('비어 있지 않은 20MB 이하의 PDF를 선택해 주세요.','error');$('fileInput').value='';return;}
+      if(state.trips.length&&!state.completed&&!window.confirm('새 PDF를 불러오면 현재 내역이 바뀝니다. 계속할까요?')){$('fileInput').value='';return;}
+      setBusy(true);clearTimeout(state.timer);state.timer=null;
+      try{if(state.calculationPromise)await state.calculationPromise.catch(()=>{});showMessage('PDF에서 출장내역을 읽고 청구금액을 정리하고 있습니다…');const result=await api('/api/parse',{filename:file.name,data:await fileAsBase64(file)});if(!Array.isArray(result.trips)||!result.trips.length)throw new Error('PDF에서 출장내역을 찾지 못했습니다.');
+        if(state.sourceUrl)URL.revokeObjectURL(state.sourceUrl);state.sourceUrl=URL.createObjectURL(file);state.sourceFile=file;state.sourceName=result.source_name||file.name;state.trips=result.trips.map(trip=>({...trip,include:trip.include!==false}));state.warnings=Array.isArray(result.warnings)?result.warnings.map(String):[];state.previewData=typeof result.preview_data==='string'?result.preview_data:null;state.previewNote=String(result.preview_note||'');state.revision++;state.manual.clear();state.commonRank='';state.calculationDirty=false;state.calculationError=false;state.completed=false;
+        for(const[key,id]of Object.entries(rateIds))if(result.rates&&result.rates[key]!==undefined)$(id).value=result.rates[key];$('commonRank').value='';$('officerTitle').value='';$('officerName').value='';$('sourceName').textContent=state.sourceName;$('previewFileName').textContent=state.sourceName;$('previewNote').textContent=state.previewNote;$('sourceImage').hidden=!state.previewData;$('pdfPlaceholder').hidden=!!state.previewData;if(state.previewData)$('sourceImage').src='data:image/png;base64,'+state.previewData;else $('sourceImage').removeAttribute('src');$('sourcePreview').open=false;
+        renderRows();updateSummary();$('workspace').hidden=false;$('emptyState').hidden=true;$('uploadTitle').textContent=file.name;$('uploadSubtitle').textContent='청구내역이 정리되었습니다. 다른 PDF도 선택할 수 있습니다.';$('selectButton').textContent='다른 PDF 선택';$('step1').classList.remove('active');$('step2').classList.add('active');$('step3').classList.remove('active');showMessage('출장 '+state.trips.length+'건을 정리했습니다. 필요한 내용만 확인하고 PDF로 저장하세요.','success');
+      }catch(error){const retained=state.trips.length?'\n아래에는 이전 PDF “'+state.sourceName+'”의 수정 내역이 유지됩니다. 새 파일의 결과가 아닙니다.':'';showError(error,retained);}
+      finally{setBusy(false);$('fileInput').value='';}
     }
+    function downloadPdf(data,filename){const binary=atob(data),bytes=new Uint8Array(binary.length);for(let index=0;index<binary.length;index++)bytes[index]=binary.charCodeAt(index);const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));const link=document.createElement('a');link.href=url;link.download=String(filename||'여비지급명세서.pdf').replace(/[\\/]/g,'_');document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
     async function renderPdf() {
-      if (state.busy || !state.trips.some(included)) return;
-      if (state.trips.some(trip => included(trip) && (moneyFields.some(field => !validMoney(trip[field])) || invalidDuration(durationMinutes(trip))))) {showMessage('붉은색으로 표시된 금액과 출장기간을 확인해 주세요. 금액은 0 이상의 정수로 입력해야 합니다.', 'error'); return;}
-      let rates; try {rates = readRates();} catch (err) {showError(err); return;}
-      setBusy(true); showMessage('입력 내용을 여비지급명세서 PDF로 만드는 중입니다…');
-      try {
-        const result = await api('/api/render', {trips: normalizedTrips(), officer_title: $('officerTitle').value.trim(), officer_name: $('officerName').value.trim(), source_name: state.sourceName, rates, rates_confirmed: $('ratesConfirmed').checked && !state.calculationDirty, data_confirmed: $('dataConfirmed').checked});
-        if (!result.data) throw new Error('생성된 PDF가 없습니다. 다시 시도해 주세요.');
-        downloadPdf(result.data, result.filename); state.completed = true; $('step3').classList.add('active');
-        const notes = Array.isArray(result.warnings) && result.warnings.length ? '\n' + result.warnings.join('\n') : '';
-        showMessage((result.is_draft ? '검토용 PDF를 생성했습니다. 미확인 항목과 지급대상을 확인해 주세요.' : '명세서 PDF를 생성했습니다. 제출 전 내용과 금액을 최종 확인해 주세요.') + '\n브라우저의 다운로드 파일에서 확인할 수 있습니다.' + notes, 'success');
-      } catch (err) {showError(err);} finally {setBusy(false);}
+      if(state.busy||!state.trips.some(included))return;setBusy(true);
+      try{await calculateNow();if(state.calculationDirty)await calculateNow();if(state.trips.some(trip=>included(trip)&&(moneyFields.some(field=>!validMoney(trip[field]))||invalidDuration(durationMinutes(trip)))))throw new Error('붉은색으로 표시된 금액과 출장기간을 먼저 확인해 주세요.');showMessage('청구내역서 PDF를 만들고 있습니다…');const result=await api('/api/render',{trips:normalizedTrips(),rates:readRates(),source_name:state.sourceName,officer_title:$('officerTitle').value.trim(),officer_name:$('officerName').value.trim()});if(!result.data)throw new Error('생성한 PDF를 읽지 못했습니다. 다시 시도해 주세요.');downloadPdf(result.data,result.filename);state.completed=true;$('step3').classList.add('active');if(Array.isArray(result.warnings))state.warnings=[...new Set([...state.warnings,...result.warnings.map(String)])];updateSummary();showMessage('청구내역서 PDF를 저장했습니다. 브라우저의 다운로드 파일에서 확인하세요.','success');}catch(error){showError(error);}finally{setBusy(false);}
     }
-    $('copyDiagnosticButton').addEventListener('click', async () => {
-      const text = $('diagnosticText').value; if (!text) return;
-      let copied = false;
-      try {if (navigator.clipboard && navigator.clipboard.writeText) {await navigator.clipboard.writeText(text); copied = true;}} catch (_) {}
-      if (!copied) {
-        const field = $('diagnosticText'); field.focus(); field.select();
-        try {copied = document.execCommand('copy');} catch (_) {}
-      }
-      $('copyDiagnosticStatus').textContent = copied ? '진단 정보를 복사했습니다.' : '아래 내용을 선택한 뒤 Ctrl+C로 복사해 주세요.';
-    });
-    $('guideButton').addEventListener('click', openGuide);
-    $('guideCloseButton').addEventListener('click', () => {if (!state.busy) $('guidePanel').hidden = true;});
-    $('guidePresetButton').addEventListener('click', presetGuide);
-    $('guideConfirmed').addEventListener('change', updateGuideReady);
-    $('guideRows').addEventListener('input', () => {if (!state.guide) return; state.guide.rowCount = Number($('guideRows').value); resetGuideConfirmation(); if (Number.isInteger(state.guide.rowCount) && state.guide.rowCount >= 1 && state.guide.rowCount <= 100) renderGuide(); $('guideStatus').textContent = validGuide(state.guide) ? '행 구분선이 각 출장 행과 맞는지 확인해 주세요.' : '행 수는 1~100 사이의 정수이며, 본문 범위 안의 실제 출장 행과 맞아야 합니다.';});
-    $('guideParseButton').addEventListener('click', () => {if (state.guide && $('guideConfirmed').checked && validGuide(state.guide) && !state.busy) loadFile(state.guide.file,true,guidePayload());});
-    $('retryButton').addEventListener('click', () => loadFile(state.attemptFile, true));
-    $('openImageButton').addEventListener('click', () => {if (state.previewUrl && !state.busy) window.open(state.previewUrl, '_blank', 'noopener');});
-    $('previousSourceButton').addEventListener('click', () => {
-      if (!state.sourceFile || state.busy) return;
-      showPreview(state.sourceFile, state.sourcePreviewData, state.sourcePreviewNote); $('imagePreview').open = true; $('previewStatus').classList.remove('failed');
-      $('previewStatus').textContent = '아래에 유지된 이전 출장 내역 “' + state.sourceName + '”의 원본입니다. 새 자료의 인식은 실패했으며, 실패한 자료를 다시 인식할 수 있습니다.';
-      $('previousSourceButton').hidden = true; $('retryButton').textContent = '실패한 ' + inputKind(state.attemptFile) + ' 다시 인식';
-    });
-    $('selectButton').addEventListener('click', () => $('fileInput').click()); $('fileInput').addEventListener('change', event => loadFile(event.target.files[0])); $('renderButton').addEventListener('click', renderPdf); $('recalculateButton').addEventListener('click', recalculate);
-    for (const id of Object.values(rateIds)) $(id).addEventListener('input', () => {state.calculationDirty = true; state.completed = false; $('ratesConfirmed').checked = false; $('step3').classList.remove('active'); if (state.trips.length) updateSummary();});
-    for (const id of ['ratesConfirmed','dataConfirmed']) $(id).addEventListener('change', () => {if (state.trips.length) updateSummary();});
-    document.addEventListener('paste', event => {
-      if (state.busy || !event.clipboardData) return;
-      const items = Array.from(event.clipboardData.items || []); const image = items.find(item => item.kind === 'file' && item.type.startsWith('image/')); if (!image) return;
-      const file = image.getAsFile(); if (file) {event.preventDefault(); loadFile(file);}
-    });
-    let dragDepth = 0; const dropZone = $('dropZone');
-    dropZone.addEventListener('dragenter', event => {event.preventDefault(); if (!state.busy) {dragDepth++; dropZone.classList.add('drag');}}); dropZone.addEventListener('dragover', event => {event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = state.busy ? 'none' : 'copy';}); dropZone.addEventListener('dragleave', event => {event.preventDefault(); dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropZone.classList.remove('drag');}); dropZone.addEventListener('drop', event => {event.preventDefault(); dragDepth = 0; dropZone.classList.remove('drag'); if (!state.busy) {if (event.dataTransfer.files.length > 1) showMessage('한 번에 캡처 또는 PDF 한 개를 선택해 주세요.', 'error'); else loadFile(event.dataTransfer.files[0]);}});
-    window.addEventListener('dragover', event => event.preventDefault()); window.addEventListener('drop', event => event.preventDefault());
-    $('exitButton').addEventListener('click', async () => {if (state.busy) return; if (state.trips.length && !state.completed && !window.confirm('저장하지 않은 내용이 있습니다. 프로그램을 종료할까요?')) return; try {await api('/api/shutdown', {}); $('workspace').hidden = true; $('emptyState').hidden = true; $('dropZone').hidden = true; $('imagePreview').hidden = true; $('exitButton').disabled = true; closeGuide(); showMessage('프로그램을 종료했습니다. 이 브라우저 탭을 닫아 주세요.', 'success');} catch (err) {showError(err);}});
+    $('selectButton').addEventListener('click',()=>$('fileInput').click());$('fileInput').addEventListener('change',event=>loadFile(event.target.files[0]));$('renderButton').addEventListener('click',renderPdf);
+    $('openPdfButton').addEventListener('click',()=>{if(state.sourceUrl&&!state.busy)window.open(state.sourceUrl,'_blank','noopener');});
+    $('commonRank').addEventListener('input',()=>{const old=state.commonRank,value=$('commonRank').value;state.commonRank=value;state.trips.forEach((trip,index)=>{if(missing(trip.rank)||trip.rank===old){trip.rank=value;const input=document.querySelector('[data-row="'+index+'"][data-field="rank"]');if(input)input.value=value;}});state.revision++;state.completed=false;updateSummary();});
+    for(const id of Object.values(rateIds))$(id).addEventListener('input',()=>{state.revision++;state.completed=false;state.manual.clear();state.calculationDirty=true;scheduleCalculation();});
+    for(const id of ['officerTitle','officerName'])$(id).addEventListener('input',()=>{state.completed=false;});
+    $('copyDiagnosticButton').addEventListener('click',async()=>{const text=$('diagnosticText').value;if(!text)return;let copied=false;try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);copied=true;}}catch(_){}if(!copied){$('diagnosticText').focus();$('diagnosticText').select();try{copied=document.execCommand('copy');}catch(_){}}$('copyDiagnosticStatus').textContent=copied?'진단 정보를 복사했습니다.':'아래 내용을 선택한 뒤 Ctrl+C로 복사해 주세요.';});
+    let dragDepth=0;const dropZone=$('dropZone');dropZone.addEventListener('dragenter',event=>{event.preventDefault();if(!state.busy){dragDepth++;dropZone.classList.add('drag');}});dropZone.addEventListener('dragover',event=>{event.preventDefault();if(event.dataTransfer)event.dataTransfer.dropEffect=state.busy?'none':'copy';});dropZone.addEventListener('dragleave',event=>{event.preventDefault();dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)dropZone.classList.remove('drag');});dropZone.addEventListener('drop',event=>{event.preventDefault();dragDepth=0;dropZone.classList.remove('drag');if(!state.busy){if(event.dataTransfer.files.length!==1)showMessage('PDF를 한 번에 한 개씩 선택해 주세요.','error');else loadFile(event.dataTransfer.files[0]);}});window.addEventListener('dragover',event=>event.preventDefault());window.addEventListener('drop',event=>event.preventDefault());
+    $('exitButton').addEventListener('click',async()=>{if(state.busy)return;if(state.trips.length&&!state.completed&&!window.confirm('저장하지 않은 내용이 있습니다. 프로그램을 종료할까요?'))return;try{setBusy(true);clearTimeout(state.timer);if(state.calculationPromise)await state.calculationPromise.catch(()=>{});await api('/api/shutdown',{});$('workspace').hidden=true;$('dropZone').hidden=true;$('emptyState').hidden=true;showMessage('프로그램을 종료했습니다. 이 브라우저 탭을 닫아 주세요.','success');$('exitButton').disabled=true;}catch(error){setBusy(false);showError(error);}});
+    updateControls();
   </script>
 </body>
 </html>

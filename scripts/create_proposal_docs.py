@@ -109,7 +109,10 @@ def build():
         document.styles[name].font.name = FONT
         document.styles[name]._element.get_or_add_rPr().get_or_add_rFonts().set(qn("w:eastAsia"), FONT)
     props = document.core_properties
-    props.title = "출장 화면 한 장으로 만드는 로컬 AI 여비명세서 — 아이디어 제안서 초안"
+    proposal_title = next((text_only(line).removeprefix("제안명:").strip()
+                           for line in content.splitlines() if text_only(line).startswith("제안명:")),
+                          "아이디어 제안서")
+    props.title = proposal_title + " — 아이디어 제안서 초안"
     props.subject = "직원 AI 활용 업무 아이디어 공모전"
     props.author = ""
     props.last_modified_by = ""

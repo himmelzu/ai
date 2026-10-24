@@ -18,6 +18,8 @@ import tarfile
 import urllib.request
 import zipfile
 
+from prepare_windows_runtime import VC_RUNTIME, prepare_runtime
+
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / ".build"
 DOWNLOADS = CACHE / "downloads"
@@ -111,23 +113,17 @@ def copy_app() -> None:
             raise RuntimeError(f"Required application file does not exist: {required}")
     shutil.copytree(
         app, STAGE / "app",
-        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo", ".DS_Store", "ocr"),
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo", ".DS_Store", "ocr", "ocr_parser.py"),
     )
 
 
-def add_ocr() -> None:
-    ocr = CACHE / "ocr_windows" / "runtime"
-    if not (ocr / "tesseract.exe").is_file():
-        raise RuntimeError("Offline Windows OCR is not prepared. Run scripts/prepare_ocr.py first.")
-    shutil.copytree(ocr, STAGE / "ocr")
-    # Python supplies VCRUNTIME140, while PyMuPDF additionally imports MSVCP140.
-    # Use the verified conda VC redistributable downloaded for offline OCR.
-    runtime = next((p for p in ocr.rglob("msvcp140.dll") if p.is_file()), None)
-    if runtime is None:
-        raise RuntimeError("Prepared OCR runtime lacks msvcp140.dll required by PyMuPDF")
-    for library in runtime.parent.glob("*.dll"):
-        if library.name.lower().startswith(("msvcp", "vcruntime", "concrt")):
-            shutil.copy2(library, STAGE / "python" / "Lib" / "site-packages" / "pymupdf" / library.name)
+def add_windows_runtime(runtime: Path) -> None:
+    # App-local DLLs keep the portable PDF engine independent of an installed
+    # C++ redistributable. Windows 10/11 supplies the Universal C Runtime.
+    for library in runtime.glob("*.dll"):
+        shutil.copy2(library, STAGE / "python" / "Lib" / "site-packages" / "pymupdf" / library.name)
+    shutil.copytree(runtime / "licenses", STAGE / "licenses" / "WindowsVC")
+    shutil.copy2(runtime / "BUILD-MANIFEST.json", STAGE / "licenses" / "WindowsVC" / "BUILD-MANIFEST.json")
 
 
 def make_payload() -> Path:
@@ -145,10 +141,11 @@ def make_payload() -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--prepare-only", action="store_true", help="Download and verify Python, PyMuPDF, fontTools and Linux Go only")
+    parser.add_argument("--prepare-only", action="store_true", help="Verify Python, PyMuPDF, fontTools, Microsoft C++ runtime and Linux Go")
     args = parser.parse_args()
     archives = {"python": download(PYTHON), "pymupdf": download(PYMUPDF), "fonttools": download(FONTTOOLS), "go": download(GO)}
     go = prepare_go(archives["go"])
+    windows_runtime = prepare_runtime()
     if args.prepare_only:
         print(f"Verified build prerequisites ready; Go: {go}")
         return
@@ -164,10 +161,10 @@ def main() -> None:
     safe_zip_extract(archives["pymupdf"], STAGE / "python" / "Lib" / "site-packages")
     safe_zip_extract(archives["fonttools"], STAGE / "python" / "Lib" / "site-packages")
     copy_app()
-    add_ocr()
+    add_windows_runtime(windows_runtime)
     manifest = {
         "platform": "windows-amd64", "python": PYTHON, "pymupdf": PYMUPDF,
-        "fonttools": FONTTOOLS, "go": GO, "source_files": {},
+        "fonttools": FONTTOOLS, "go": GO, "vc_runtime": VC_RUNTIME, "source_files": {},
     }
     for path in sorted((STAGE / "app").rglob("*")):
         if path.is_file():

@@ -27,7 +27,8 @@ def source_files():
     for folder in ("app", "launcher", "scripts", "tests", "docs"):
         for path in sorted((ROOT / folder).rglob("*")):
             if (path.is_file() and "__pycache__" not in path.parts
-                    and path.suffix not in (".pyc", ".pyo") and path.name != "payload.zip"):
+                    and path.suffix not in (".pyc", ".pyo") and path.name != "payload.zip"
+                    and not (folder == "app" and "ocr" in path.relative_to(ROOT / folder).parts)):
                 yield path
     for name in ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "requirements.txt",
                  "build-requirements.txt", ".gitignore"):
@@ -40,7 +41,7 @@ def licenses():
     yield "licenses/Python/LICENSE.txt", payload / "python/LICENSE.txt"
     yield "licenses/PyMuPDF/COPYING", payload / "python/Lib/site-packages/pymupdf-1.26.6.dist-info/COPYING"
     yield "licenses/NotoSansCJK/LICENSE.txt", ROOT / "app/fonts/LICENSE.txt"
-    for label, folder in (("OCR", ROOT / ".build/ocr_windows/runtime/licenses"),
+    for label, folder in (("WindowsVC", payload / "licenses/WindowsVC"),
                           ("fontTools", payload / "python/Lib/site-packages/fonttools-4.61.1.dist-info/licenses")):
         for path in sorted(folder.rglob("*")):
             if path.is_file():
@@ -49,7 +50,7 @@ def licenses():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", default="0.2.2")
+    parser.add_argument("--version", default="0.3.0")
     args = parser.parse_args()
     if not all(char in "0123456789.-abcdefghijklmnopqrstuvwxyz" for char in args.version):
         parser.error("Use a simple release version")
@@ -66,8 +67,8 @@ def main():
     (DIST / "검증결과.json").write_text(json.dumps(validation, ensure_ascii=False, indent=2))
     copies = {
         ROOT / "docs/사용설명서.md": "사용방법.txt",
-        DOWNLOADS / "example-capture.png": "가명_테스트캡처.png",
-        DOWNLOADS / "example-statement.pdf": "예시_여비지급명세서_검토용.pdf",
+        DOWNLOADS / "example-input.pdf": "가명_출장내역_예시.pdf",
+        DOWNLOADS / "example-statement.pdf": "예시_여비지급명세서.pdf",
         DOWNLOADS / "contest-proposal.pdf": "공모전_제안서_초안.pdf",
         DOWNLOADS / "contest-proposal.docx": "공모전_제안서_초안.docx",
         DOWNLOADS / "contest-proposal.txt": "공모전_제안서_초안.txt",
@@ -82,27 +83,26 @@ def main():
         "여비청구서 변환기 v" + args.version + " — Windows 10/11 64비트\n\n"
         "기존 프로그램은 종료한 후 새 ZIP을 별도 폴더에 풀어 실행하세요.\n"
         "1. 여비청구서변환기.exe를 실행합니다.\n"
-        "2. 캡처를 Ctrl+V로 붙여넣거나 이미지 파일을 선택합니다.\n"
-        "   출장 월별집계 텍스트 PDF도 보조 입력으로 선택할 수 있습니다.\n"
-        "3. 원본과 이름·실제 시각·차량·지급대상을 대조해 수정합니다.\n"
-        "4. 기관 지급기준을 확인하고 일비 다시 계산 후 PDF를 저장합니다.\n"
-        "5. 작업이 끝나면 프로그램 화면의 종료를 누릅니다.\n\n"
-        "이미지·PDF는 외부 서버로 보내지 않습니다. Python 설치는 필요하지 않습니다.\n"
-        "월별집계 PDF는 시스템의 결재완료 내역으로 처리합니다.\n"
-        "캡처의 열 인식이 실패하면 표 배치 직접 확인으로 경계와 행 수를 확인하세요.\n"
-        "미확인 내용이나 지급기준 확인이 남으면 검토용으로 저장합니다.\n"
+        "2. 시스템에서 내려받은 개인별 출장내역 PDF를 선택합니다.\n"
+        "3. 자동 계산된 내역을 확인하고 PDF 저장을 누릅니다.\n"
+        "   필요한 내용은 화면에서 수정할 수 있고 지급기준 설정도 바꿀 수 있습니다.\n"
+        "4. 작업이 끝나면 프로그램 화면의 종료를 누릅니다.\n\n"
+        "PDF는 외부 서버로 보내지 않습니다. Python 설치는 필요하지 않습니다.\n"
+        "개인별 내역은 확인행의 실제 시각과 상태를 사용하며, 미전송 등은 기본 제외합니다.\n"
+        "기존 월별집계 PDF에는 결재완료 내역만 내보낸다는 업무 규칙을 적용합니다.\n"
+        "주의·누락 안내는 화면에서 확인하며, 출력물에는 검토 상태 문구를 넣지 않습니다.\n"
         "관외·여러 날 출장은 자동 계산 범위 밖이므로 별도 검토가 필요합니다.\n\n"
         "DOCX와 TXT 제안서는 복사·수정용 초안입니다.\n"
         "개인 참가정보·동의·서명은 직접 작성하세요.\n"
         "오류가 나면 화면의 오류 진단 정보에서 진단 정보 복사를 눌러 문의하세요.\n"
         "상세 사용법: 사용방법.txt / 소스·빌드 절차: source.zip\n"
-        "예시 이미지와 예시 명세서는 가명 자료입니다.\n",
+        "예시 입력 PDF와 예시 명세서는 가명 자료입니다.\n",
         encoding="utf-8-sig")
     with zipfile.ZipFile(DIST / "source.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for path in source_files():
             archive.write(path, "travel-claim/" + path.relative_to(ROOT).as_posix())
-    files = ["여비청구서변환기.exe", "처음읽기.txt", "사용방법.txt", "가명_테스트캡처.png",
-             "예시_여비지급명세서_검토용.pdf", "공모전_제안서_초안.pdf", "공모전_제안서_초안.docx",
+    files = ["여비청구서변환기.exe", "처음읽기.txt", "사용방법.txt", "가명_출장내역_예시.pdf",
+             "예시_여비지급명세서.pdf", "공모전_제안서_초안.pdf", "공모전_제안서_초안.docx",
              "공모전_제안서_초안.txt", "프로그램_화면.png", "검증결과.json", "source.zip"]
     output = DIST / ("TravelClaim-Windows-v" + args.version + ".zip")
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as archive:

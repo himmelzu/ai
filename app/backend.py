@@ -17,9 +17,9 @@ import webbrowser
 
 from renderer import recalculate, render_pdf
 
-MAX_IMAGE = 20 * 1024 * 1024
+MAX_PDF = 20 * 1024 * 1024
 MAX_REQUEST = 29 * 1024 * 1024
-APP_VERSION = "0.2.2"
+APP_VERSION = "0.3.0"
 
 
 def failure_details(exc, route):
@@ -29,7 +29,6 @@ def failure_details(exc, route):
     code, message = {
         "/api/render": ("PDF_RENDER_FAILED", "PDF를 만드는 중 오류가 발생했습니다. 입력 내역은 유지됩니다. 아래 오류 정보를 복사해 알려 주세요."),
         "/api/parse": ("INPUT_PARSE_FAILED", "자료를 읽는 중 오류가 발생했습니다. 아래 오류 정보를 복사해 알려 주세요."),
-        "/api/layout": ("LAYOUT_SUGGESTION_FAILED", "표 배치 안내를 준비하지 못했습니다. 원본을 확인하고 기본 배치를 조정해 주세요."),
         "/api/recalculate": ("CALCULATION_FAILED", "금액을 계산하는 중 오류가 발생했습니다. 아래 오류 정보를 복사해 알려 주세요."),
     }.get(route, ("REQUEST_FAILED", "요청을 처리하지 못했습니다. 아래 오류 정보를 복사해 알려 주세요."))
     frames = []
@@ -53,7 +52,7 @@ def failure_details(exc, route):
 
 def validation_details(exc, route):
     """Return useful 400 diagnostics without copying recognized text or paths."""
-    stage = {"/api/parse": "parse", "/api/layout": "layout", "/api/render": "render",
+    stage = {"/api/parse": "parse", "/api/render": "render",
              "/api/recalculate": "calculate"}.get(route, "request")
     code = getattr(exc, "error_code", "INPUT_VALIDATION_FAILED")
     if not isinstance(code, str) or not re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", code):
@@ -86,28 +85,20 @@ def decode_input(data):
         raw = base64.b64decode(data.get("data", ""), validate=True)
     except (ValueError, TypeError):
         raise ValueError("파일 데이터가 손상되었습니다. 파일을 다시 선택해 주세요.") from None
-    if not raw or len(raw) > MAX_IMAGE:
-        raise ValueError("20MB 이하의 캡처 이미지 또는 PDF 파일을 선택해 주세요.")
-    return raw, str(data.get("filename", "capture.png"))[:240]
+    if not raw or len(raw) > MAX_PDF:
+        raise ValueError("20MB 이하의 출장 내역 PDF 파일을 선택해 주세요.")
+    return raw, str(data.get("filename", "report.pdf"))[:240]
 
 
-def parse_capture(payload, filename, layout=None):
-    if not payload or len(payload) > MAX_IMAGE:
-        raise ValueError("20MB 이하의 캡처 이미지 또는 PDF 파일을 선택해 주세요.")
-    if payload.lstrip().startswith(b"%PDF-"):
-        if layout is not None:
-            raise ValueError("표 배치 직접 확인은 캡처 이미지에만 사용할 수 있습니다. PDF는 일반 불러오기를 사용해 주세요.")
-        from monthly_report import parse_pdf
-        parsed = parse_pdf(payload, filename)
-    else:
-        if layout is None:
-            from ocr_parser import parse_image
-            parsed = parse_image(payload, filename)
-        else:
-            from ocr_parser import parse_image_with_layout
-            parsed = parse_image_with_layout(payload, filename, layout)
+def parse_pdf_input(payload, filename):
+    if not payload or len(payload) > MAX_PDF:
+        raise ValueError("20MB 이하의 출장 내역 PDF 파일을 선택해 주세요.")
+    if not payload.lstrip().startswith(b"%PDF-"):
+        raise ValueError("출장 내역 PDF 파일을 선택해 주세요. 이미지 파일은 지원하지 않습니다.")
+    from monthly_report import parse_pdf
+    parsed = parse_pdf(payload, filename)
     for trip in parsed["trips"]:
-        if any(s in trip.get("approval_status", "") for s in ("미신청", "취소", "반려", "결재중", "미결재")):
+        if trip.get("approval_status", "") != "결재완료":
             trip["include"] = False
     calculated = recalculate(parsed["trips"])
     parsed["trips"] = calculated["trips"]
@@ -173,31 +164,22 @@ class Handler(BaseHTTPRequestHandler):
         try:
             size = int(self.headers.get("Content-Length", "0"))
             if not 0 < size <= MAX_REQUEST:
-                raise ValueError("요청이 너무 크거나 비어 있습니다. 20MB 이하 이미지 또는 PDF를 사용해 주세요.")
+                raise ValueError("요청이 너무 크거나 비어 있습니다. 20MB 이하 PDF를 사용해 주세요.")
             data = json.loads(self.rfile.read(size))
             if not isinstance(data, dict):
                 raise ValueError("요청 형식이 올바르지 않습니다.")
             if self.path == "/api/parse":
                 raw, filename = decode_input(data)
-                result = parse_capture(raw, filename, data.get("layout"))
-            elif self.path == "/api/layout":
-                raw, _ = decode_input(data)
-                if raw.lstrip().startswith(b"%PDF-"):
-                    raise ValueError("PDF는 표 배치 확인 없이 일반 불러오기를 사용해 주세요.")
-                from ocr_parser import suggest_image_layout
-                result = {"layout": suggest_image_layout(raw)}
+                result = parse_pdf_input(raw, filename)
             elif self.path == "/api/recalculate":
                 result = recalculate(data.get("trips"), data.get("rates"))
             elif self.path == "/api/render":
-                allowed = ("trips", "rates", "rates_confirmed", "data_confirmed", "officer_title", "officer_name", "source_name")
+                allowed = ("trips", "rates", "officer_title", "officer_name", "source_name")
                 kwargs = {k: data[k] for k in allowed if k in data}
                 raw_trips = kwargs.pop("trips", None)
-                # Only literal booleans confirm financial/review statements.
-                kwargs["rates_confirmed"] = kwargs.get("rates_confirmed") is True
-                kwargs["data_confirmed"] = kwargs.get("data_confirmed") is True
                 pdf, result = render_pdf(raw_trips, **kwargs)
                 result.update(data=base64.b64encode(pdf).decode("ascii"),
-                              filename="여비지급명세서"+("_검토용" if result["is_draft"] else "")+".pdf")
+                              filename="여비지급명세서.pdf")
             elif self.path == "/api/shutdown":
                 self.respond(200, {"ok": True})
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
@@ -213,22 +195,22 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="캡처 이미지 또는 출장 월별집계 PDF → 여비지급명세서 PDF (오프라인)")
+    parser = argparse.ArgumentParser(description="출장 내역 PDF → 여비지급명세서 PDF (오프라인)")
     parser.add_argument("--desktop", action="store_true")
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--port", type=int, default=0)
-    parser.add_argument("--convert", metavar="IMAGE_OR_PDF")
+    parser.add_argument("--convert", metavar="PDF")
     parser.add_argument("--output", metavar="PDF")
     args = parser.parse_args()
     if args.convert:
         if not args.output:
             parser.error("--output PDF가 필요합니다.")
         source = Path(args.convert)
-        parsed = parse_capture(source.read_bytes(), source.name)
+        parsed = parse_pdf_input(source.read_bytes(), source.name)
         pdf, info = render_pdf(parsed["trips"])
         destination = Path(args.output)
         if source.resolve() == destination.resolve():
-            parser.error("원본 이미지와 다른 출력 경로를 선택해 주세요.")
+            parser.error("원본 PDF와 다른 출력 경로를 선택해 주세요.")
         destination.write_bytes(pdf)
         print(json.dumps({"output": str(destination), **info}, ensure_ascii=False))
         return

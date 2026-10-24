@@ -64,6 +64,14 @@ class RateTests(unittest.TestCase):
 
 
 class PdfTests(unittest.TestCase):
+    def assert_clean_statement(self, document):
+        text = unicodedata.normalize("NFKC", "\n".join(page.get_text() for page in document))
+        compact = re.sub(r"\s+", "", text)
+        for status in ("검토용", "검토 중", "확인된 출장 내역", "캡처 인식", "OCR 인식"):
+            self.assertNotIn(re.sub(r"\s+", "", status), compact)
+        self.assertEqual(document.metadata["title"], "여비지급명세서")
+        return text
+
     def test_unwritable_font_subset_temp_directory_still_saves_complete_pdf(self):
         records = recalculate([trip()])["trips"]
         with mock.patch("tempfile.TemporaryDirectory", side_effect=PermissionError("fixture-only denial")):
@@ -87,10 +95,12 @@ class PdfTests(unittest.TestCase):
 
         with mock.patch.object(fitz.Document, "subset_fonts", damaged_subset):
             payload, info = render_pdf(records)
-        self.assertTrue(info["is_draft"])
+        self.assertFalse(info["needs_review"])
+        self.assertFalse(info["is_draft"])
         self.assertEqual(info["count"], 11)
         with fitz.open(stream=payload, filetype="pdf") as doc:
             self.assertEqual(len(doc), 2)
+            self.assert_clean_statement(doc)
             text = re.sub(r"\s+", "", "\n".join(page.get_text() for page in doc))
             for i in range(11):
                 self.assertIn(f"시험자{i}", text)
@@ -122,23 +132,36 @@ class PdfTests(unittest.TestCase):
             self.assertIn("20,000", text)
             self.assertNotIn("검토용", text)
 
-    def test_confirmed_pdf_contains_expected_content_and_sum(self):
+    def test_clean_pdf_contains_expected_content_and_sum_without_confirmations(self):
         records = recalculate([trip(), trip(start_date="2026-10-21", end_date="2026-10-21", vehicle="used")])["trips"]
-        payload, info = render_pdf(records, rates_confirmed=True, data_confirmed=True)
+        payload, info = render_pdf(records)
+        self.assertFalse(info["needs_review"])
         self.assertFalse(info["is_draft"])
         with fitz.open(stream=payload, filetype="pdf") as doc:
             self.assertEqual(len(doc), 1)
-            text = unicodedata.normalize("NFKC", doc[0].get_text())
+            text = self.assert_clean_statement(doc)
             for expected in ("홍길동", "현장 확인", "30,000", "2건"):
                 self.assertIn(expected, text)
             self.assertNotIn("검토용", text)
 
-    def test_missing_data_never_produces_final_pdf(self):
+    def test_missing_data_warns_on_screen_without_printing_review_status(self):
         records = recalculate([trip(start_time="")])["trips"]
-        payload, info = render_pdf(records, rates_confirmed=True, data_confirmed=True)
-        self.assertTrue(info["is_draft"])
+        payload, info = render_pdf(records)
+        self.assertTrue(info["needs_review"])
+        self.assertTrue(any("실제 시작" in warning for warning in info["warnings"]))
         with fitz.open(stream=payload, filetype="pdf") as doc:
-            self.assertIn("확인 필요", unicodedata.normalize("NFKC", doc[0].get_text()))
+            text = self.assert_clean_statement(doc)
+            self.assertIn("확인 필요", text)
+
+    def test_absent_optional_rank_does_not_require_review_or_print_a_separator(self):
+        records = recalculate([trip(rank="")])["trips"]
+        payload, info = render_pdf(records)
+        self.assertFalse(info["needs_review"])
+        self.assertFalse(any("직급" in warning for warning in info["warnings"]))
+        with fitz.open(stream=payload, filetype="pdf") as doc:
+            text = self.assert_clean_statement(doc)
+            self.assertIn("가상지원과", text)
+            self.assertNotIn("가상지원과/", re.sub(r"\s+", "", text))
 
     def test_unapproved_record_requires_review(self):
         records = recalculate([trip(approval_status="미신청")])["trips"]
@@ -152,6 +175,7 @@ class PdfTests(unittest.TestCase):
         self.assertEqual(info["count"], 23)
         with fitz.open(stream=payload, filetype="pdf") as doc:
             self.assertEqual(len(doc), 3)
+            self.assert_clean_statement(doc)
             text = re.sub(r"\s+", "", "\n".join(p.get_text() for p in doc))
             for i in range(23):
                 self.assertIn(f"시험자{i}", text)
@@ -168,12 +192,15 @@ class PdfTests(unittest.TestCase):
         self.assertTrue(info["is_draft"])
         self.assertTrue(any("상한" in w for w in info["warnings"]))
 
-    def test_manual_money_does_not_finalize_unsupported_scope_or_days(self):
+    def test_manual_money_keeps_unsupported_scope_warning_without_printed_status(self):
         for record in (trip(scope="관외", daily_allowance=20000, claim_amount=20000),
                        trip(end_date="2026-10-23", daily_allowance=20000, claim_amount=20000)):
             with self.subTest(scope=record["scope"], end=record["end_date"]):
-                _, info = render_pdf([record], rates_confirmed=True, data_confirmed=True)
-                self.assertTrue(info["is_draft"])
+                payload, info = render_pdf([record], rates_confirmed=True, data_confirmed=True)
+                self.assertTrue(info["needs_review"])
+                self.assertTrue(any("별도 검토" in warning for warning in info["warnings"]))
+                with fitz.open(stream=payload, filetype="pdf") as doc:
+                    self.assert_clean_statement(doc)
 
     def test_empty_expense_is_not_silently_converted_to_zero(self):
         records = recalculate([trip(meal="")])["trips"]
